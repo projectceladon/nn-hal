@@ -27,18 +27,24 @@ ngraph::Output<ngraph::Node> NgraphNodes::getOperationOutput(size_t index) {
 }
 
 void NgraphNodes::setResultNode(size_t outputIndex, std::shared_ptr<ngraph::Node> resultNode) {
-    ALOGD("setResultNode %zu", outputIndex);
+    ALOGV("setResultNode %zu", outputIndex);
     mResultNodes.push_back(resultNode);
 }
 
 const std::string& NgraphNodes::getNodeName(size_t index) {
     if (mNodeNames.find(index) == mNodeNames.end()) {
         mNodeNames[index] = mOutputAtOperandIndex[index].get_node_shared_ptr()->get_name();
-        ALOGD("%s index %zu, name %s", __func__, index, mNodeNames[index].c_str());
+        ALOGV("%s index %zu, name %s", __func__, index, mNodeNames[index].c_str());
     }
     ALOGV("%s index %zu, name %s", __func__, index, mNodeNames[index].c_str());
     return mNodeNames[index];
 }
+
+std::vector<size_t> NgraphNodes::getOutputShape(size_t index) {
+    ALOGV("%s outputshape of node %zu index ", __func__, index);
+    return mOutputAtOperandIndex[index].get_node_shared_ptr()->get_output_shape(0);
+}
+
 // remove null input node parameter
 void NgraphNodes::removeInputParameter(std::string name, size_t index) {
     for (size_t i = 0; i < mInputParams.size(); i++) {
