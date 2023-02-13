@@ -95,11 +95,11 @@ cc_library_static {
     header_libs: [
         "libngraph_headers",
         "libinference_headers",
+        "libnnhal_headers",
     ],
     include_dirs: [
-        "vendor/intel/external/project-celadon/nn-hal",
-        "frameworks/ml/nn/common/include",
-        "frameworks/ml/nn/runtime/include",
+        "packages/modules/NeuralNetworks/common/include",
+        "packages/modules/NeuralNetworks/runtime/include",
         "external/mesa3d/include/android_stub"
     ],
     local_include_dirs: [
