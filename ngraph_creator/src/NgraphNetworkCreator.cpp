@@ -2,6 +2,7 @@
 #undef LOG_TAG
 #define LOG_TAG "NgraphNetworkCreator"
 
+
 namespace android {
 namespace hardware {
 namespace neuralnetworks {
@@ -31,7 +32,7 @@ NgraphNetworkCreator::~NgraphNetworkCreator() { ALOGV("%s Destructed", __func__)
 
 bool NgraphNetworkCreator::createInputParams() {
     for (auto i : mModelInfo->getModelInputIndexes()) {
-        std::shared_ptr<ngraph::opset3::Parameter> inputParam;
+        std::shared_ptr<ov::opset3::Parameter> inputParam;
         auto& nnapiOperand = mModelInfo->getOperand(i);
         auto& dims = nnapiOperand.dimensions;
         ALOGV("createInputParams operand %d dims.size(%zu)", i, dims.size());
@@ -43,54 +44,54 @@ bool NgraphNetworkCreator::createInputParams() {
                 switch (nnapiOperand.type) {
                     case OperandType::FLOAT32:
                     case OperandType::TENSOR_FLOAT32:
-                        inputParam = std::make_shared<ngraph::opset3::Parameter>(
-                            ngraph::element::f32, ngraph::Shape(dims.begin(), dims.end()));
+                        inputParam = std::make_shared<ov::opset3::Parameter>(
+                            ov::element::f32, ov::Shape(dims.begin(), dims.end()));
                         ALOGV("createInputParams created inputIndex %d, type %d", i,
                               nnapiOperand.type);
                         break;
                     case OperandType::INT32:
                     case OperandType::TENSOR_INT32:
-                        inputParam = std::make_shared<ngraph::opset3::Parameter>(
-                            ngraph::element::i32, ngraph::Shape(dims.begin(), dims.end()));
+                        inputParam = std::make_shared<ov::opset3::Parameter>(
+                            ov::element::i32, ov::Shape(dims.begin(), dims.end()));
                         ALOGV("createInputParams created inputIndex %d, type %d", i,
                               nnapiOperand.type);
                         break;
                     case OperandType::BOOL:
                     case OperandType::TENSOR_BOOL8:
-                        inputParam = std::make_shared<ngraph::opset3::Parameter>(
-                            ngraph::element::boolean, ngraph::Shape(dims.begin(), dims.end()));
+                        inputParam = std::make_shared<ov::opset3::Parameter>(
+                            ov::element::boolean, ov::Shape(dims.begin(), dims.end()));
                         ALOGV("createInputParams created inputIndex %d, type %d", i,
                               nnapiOperand.type);
                         break;
                     case OperandType::TENSOR_QUANT8_ASYMM:
-                        inputParam = std::make_shared<ngraph::opset3::Parameter>(
-                            ngraph::element::u8, ngraph::Shape(dims.begin(), dims.end()));
+                        inputParam = std::make_shared<ov::opset3::Parameter>(
+                            ov::element::u8, ov::Shape(dims.begin(), dims.end()));
                         ALOGV("createInputParams created inputIndex %d, type %d", i,
                               nnapiOperand.type);
                         break;
                     case OperandType::TENSOR_QUANT8_SYMM:
                     case OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL:
                     case OperandType::TENSOR_QUANT8_ASYMM_SIGNED:
-                        inputParam = std::make_shared<ngraph::opset3::Parameter>(
-                            ngraph::element::i8, ngraph::Shape(dims.begin(), dims.end()));
+                        inputParam = std::make_shared<ov::opset3::Parameter>(
+                            ov::element::i8, ov::Shape(dims.begin(), dims.end()));
                         ALOGV("createInputParams created inputIndex %d, type %d", i,
                               nnapiOperand.type);
                         break;
                     case OperandType::TENSOR_FLOAT16:
-                        inputParam = std::make_shared<ngraph::opset3::Parameter>(
-                            ngraph::element::f16, ngraph::Shape(dims.begin(), dims.end()));
+                        inputParam = std::make_shared<ov::opset3::Parameter>(
+                            ov::element::f16, ov::Shape(dims.begin(), dims.end()));
                         ALOGV("createInputParams created inputIndex %d, type %d", i,
                               nnapiOperand.type);
                         break;
                     case OperandType::TENSOR_QUANT16_SYMM:
-                        inputParam = std::make_shared<ngraph::opset3::Parameter>(
-                            ngraph::element::i16, ngraph::Shape(dims.begin(), dims.end()));
+                        inputParam = std::make_shared<ov::opset3::Parameter>(
+                            ov::element::i16, ov::Shape(dims.begin(), dims.end()));
                         ALOGV("createInputParams created inputIndex %d, type %d", i,
                               nnapiOperand.type);
                         break;
                     case OperandType::TENSOR_QUANT16_ASYMM:
-                        inputParam = std::make_shared<ngraph::opset3::Parameter>(
-                            ngraph::element::u16, ngraph::Shape(dims.begin(), dims.end()));
+                        inputParam = std::make_shared<ov::opset3::Parameter>(
+                            ov::element::u16, ov::Shape(dims.begin(), dims.end()));
                         ALOGV("createInputParams created inputIndex %d, type %d", i,
                               nnapiOperand.type);
                         break;
@@ -113,6 +114,15 @@ bool NgraphNetworkCreator::createInputParams() {
     return true;
 }
 
+bool NgraphNetworkCreator::createOutput() {
+    auto outIndexes = mModelInfo->getModelOutputsIndexes();
+    for(int i = 0; i < mModelInfo->getModelOutputsSize(); i++) {
+        //  mNgraphNodes->setResultNode(i, mNgraphNodes->getOperationOutputNode(outIndexes[i]));
+        auto resultNode = std::make_shared<ov::opset3::Result>(mNgraphNodes->getOperationOutput(outIndexes[i]));
+        mNgraphNodes->setResultNode(i, resultNode);
+    }
+    return true;
+}
 void NgraphNetworkCreator::getSupportedOperations(std::vector<bool>& supportedOperations) {
     for (size_t i = 0; i < mModelInfo->getOperationsSize(); i++) {
         if (!mOperationNodes[i] || !mOperationNodes[i]->validateForPlugin())
@@ -150,6 +160,10 @@ bool NgraphNetworkCreator::initializeModel() {
             return false;
         }
     }
+    if(!createOutput()) {
+        ALOGE("initializeModel Failed");
+        return false;
+    }
     ALOGD("initializeModel Success");
     return true;
 }
@@ -164,9 +178,9 @@ std::vector<size_t> NgraphNetworkCreator::getOutputShape(uint32_t index) {
     ALOGV("%s get node %d outputsize ", __func__, index);
     return mNgraphNodes->getOutputShape(index);
 }
-std::shared_ptr<ngraph::Function> NgraphNetworkCreator::generateGraph() {
+std::shared_ptr<ov::Model> NgraphNetworkCreator::generateGraph() {
     ALOGV("%s Called", __func__);
-    std::shared_ptr<ngraph::Function> ret;
+    std::shared_ptr<ov::Model> ret;
     try {
         if (initializeModel()) ret = mNgraphNodes->generateGraph();
     } catch (const std::exception& ex) {

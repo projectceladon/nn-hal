@@ -2,9 +2,10 @@
 
 #include <NgraphNodes.hpp>
 #include <OperationsFactory.hpp>
-#include <ngraph/node.hpp>
+#include <openvino/core/node.hpp>
 #include "ModelManager.h"
 #include "OperationsBase.hpp"
+
 
 namespace android {
 namespace hardware {
@@ -19,6 +20,7 @@ private:
     OperationsFactory mOpFactoryInstance;
     bool createInputParams();
     bool initializeModel();
+    bool createOutput();
 
 public:
     NgraphNetworkCreator(std::shared_ptr<NnapiModelInfo> modelInfo, IntelDeviceType deviceType);
@@ -29,7 +31,7 @@ public:
     const std::string& getNodeName(uint32_t index);
     std::vector<size_t> getOutputShape(uint32_t index);
 
-    std::shared_ptr<ngraph::Function> generateGraph();
+    std::shared_ptr<ov::Model> generateGraph();
 };
 
 }  // namespace nnhal

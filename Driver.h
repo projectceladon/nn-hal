@@ -36,12 +36,8 @@
 #include <android/hardware/neuralnetworks/1.3/types.h>
 
 #include <string>
-#include "Utils.h"
 
-namespace android {
-namespace hardware {
-namespace neuralnetworks {
-namespace nnhal {
+namespace android::hardware::neuralnetworks::nnhal {
 
 enum class IntelDeviceType { CPU, GPU, GNA, VPU, OTHER };
 
@@ -86,12 +82,12 @@ using HidlToken = android::hardware::hidl_array<uint8_t, 32>;
 //
 // Since these drivers simulate hardware, they must run the computations
 // on the CPU.  An actual driver would not do that.
-class Driver : public ::android::hardware::neuralnetworks::V1_3::IDevice {
+class Driver : public V1_3::IDevice {
 public:
     Driver() {}
     Driver(IntelDeviceType device) : mDeviceType(device) {}
 
-    ~Driver() override {}
+    virtual~Driver() override {}
 
     // For HAL-1.0 version
     Return<void> getCapabilities(getCapabilities_cb cb) override;
@@ -150,9 +146,6 @@ protected:
     IntelDeviceType mDeviceType;
 };
 
-}  // namespace nnhal
-}  // namespace neuralnetworks
-}  // namespace hardware
-}  // namespace android
+}  // namespace android::hardware::neuralnetworks::nnhal
 
 #endif  // ANDROID_ML_NN_DRIVER_H
