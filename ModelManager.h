@@ -13,10 +13,7 @@
 #undef LOG_TAG
 #define LOG_TAG "ModelManager"
 
-namespace android {
-namespace hardware {
-namespace neuralnetworks {
-namespace nnhal {
+namespace android::hardware::neuralnetworks::nnhal {
 
 using ::android::hidl::memory::V1_0::IMemory;
 
@@ -48,6 +45,8 @@ public:
     uint32_t getModelOutputIndex(uint32_t index) { return mModel.main.outputIndexes[index]; }
 
     size_t getModelOutputsSize() { return mModel.main.outputIndexes.size(); }
+
+    const auto& getModelOutputsIndexes() { return mModel.main.outputIndexes; }
 
     // Index into the operand vector
     V1_3::OperandLifeTime getOperandLifetime(uint32_t operandIdx) {
@@ -206,9 +205,6 @@ private:
     std::vector<V1_2::OutputShape> mOutputShapes;
 };
 
-}  // namespace nnhal
-}  // namespace neuralnetworks
-}  // namespace hardware
-}  // namespace android
+}  // namespace android::hardware::neuralnetworks::nnhal
 
 #endif

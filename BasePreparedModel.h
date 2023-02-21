@@ -30,6 +30,7 @@
 #include <string>
 
 #include <NgraphNetworkCreator.hpp>
+#include <openvino/pass/serialize.hpp>
 #include "Driver.h"
 #include "IENetwork.h"
 #include "ModelManager.h"
@@ -44,11 +45,7 @@ using ::android::hardware::MQDescriptorSync;
 using ::android::hidl::memory::V1_0::IMemory;
 using namespace InferenceEngine;
 
-namespace android {
-namespace hardware {
-namespace neuralnetworks {
-namespace nnhal {
-
+namespace android::hardware::neuralnetworks::nnhal {
 template <class T>
 using vec = std::vector<T>;
 typedef uint8_t* memory;
@@ -56,9 +53,6 @@ extern bool mRemoteCheck;
 extern std::shared_ptr<DetectionClient> mDetectionClient;
 class BasePreparedModel : public V1_3::IPreparedModel {
 public:
-    BasePreparedModel(const Model& model) : mTargetDevice(IntelDeviceType::CPU) {
-        mModelInfo = std::make_shared<NnapiModelInfo>(model);
-    }
     BasePreparedModel(const IntelDeviceType device, const Model& model) : mTargetDevice(device) {
         mModelInfo = std::make_shared<NnapiModelInfo>(model);
     }
@@ -100,7 +94,7 @@ public:
 
     std::shared_ptr<IIENetwork> getPlugin() { return mPlugin; }
 
-    std::shared_ptr<InferenceEngine::CNNNetwork> cnnNetworkPtr;
+    std::shared_ptr<ov::Model> modelPtr;
 
 protected:
     virtual void deinitialize();
@@ -129,9 +123,6 @@ private:
     const V1_3::ErrorStatus kErrorStatus;
 };
 
-}  // namespace nnhal
-}  // namespace neuralnetworks
-}  // namespace hardware
-}  // namespace android
+}  // namespace android::hardware::neuralnetworks::nnhal
 
 #endif  // ANDROID_ML_NN_PREPAREDMODEL_H

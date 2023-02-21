@@ -11,8 +11,8 @@ L2Pooling2D::L2Pooling2D(int operationIndex) : OperationsBase(operationIndex) {
     mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
-std::shared_ptr<ngraph::Node> L2Pooling2D::createNode() {
-    std::shared_ptr<ngraph::Node> inputNode;
+std::shared_ptr<ov::Node> L2Pooling2D::createNode() {
+    std::shared_ptr<ov::Node> inputNode;
     inputNode = getInputNode(0);
     const auto& inputsSize = sModelInfo->getOperationInputsSize(mNnapiOperationIndex);
     bool isImplicit = false, isExplicit = false;
@@ -39,7 +39,7 @@ std::shared_ptr<ngraph::Node> L2Pooling2D::createNode() {
     std::vector<size_t> pads_begin;
     std::vector<size_t> pads_end;
     std::vector<size_t> kernel;
-    ngraph::op::PadType auto_pad;
+    ov::op::PadType auto_pad;
 
     const auto& inputDimensions = getInputOperandDimensions(0);
 
@@ -63,7 +63,7 @@ std::shared_ptr<ngraph::Node> L2Pooling2D::createNode() {
 
         if (layout) useNchw = true;
 
-        auto_pad = ngraph::op::PadType::EXPLICIT;
+        auto_pad = ov::op::PadType::EXPLICIT;
     }
 
     if (isImplicit) {
@@ -96,20 +96,20 @@ std::shared_ptr<ngraph::Node> L2Pooling2D::createNode() {
                                      &padding_right);
             calculateExplicitPadding(input_height, stride_height, filter_height, 1, &padding_top,
                                      &padding_bottom);
-            auto_pad = ngraph::op::PadType::SAME_UPPER;
+            auto_pad = ov::op::PadType::SAME_UPPER;
         } else if (padding_scheme == 2) {
-            auto_pad = ngraph::op::PadType::VALID;
+            auto_pad = ov::op::PadType::VALID;
             padding_left = 0;
             padding_right = 0;
             padding_top = 0;
             padding_bottom = 0;
         } else {
-            auto_pad = ngraph::op::PadType::NOTSET;
+            auto_pad = ov::op::PadType::NOTSET;
         }
     }
 
-    std::shared_ptr<ngraph::Node> inputSquared, sqrtOutput;
-    inputSquared = std::make_shared<ngraph::op::v1::Multiply>(inputNode, inputNode);
+    std::shared_ptr<ov::Node> inputSquared, sqrtOutput;
+    inputSquared = std::make_shared<ov::op::v1::Multiply>(inputNode, inputNode);
 
     if (!useNchw) {
         ALOGD("%s Forced NCHW conversion at operationIndex %d", __func__, mNnapiOperationIndex);
@@ -121,11 +121,11 @@ std::shared_ptr<ngraph::Node> L2Pooling2D::createNode() {
     pads_begin = {(size_t)padding_top, (size_t)padding_left};
     pads_end = {(size_t)padding_bottom, (size_t)padding_right};
 
-    auto avgPoolNode = std::make_shared<ngraph::op::v1::AvgPool>(
-        inputSquared, ngraph::Strides(strides), ngraph::Shape(pads_begin), ngraph::Shape(pads_end),
-        ngraph::Shape(kernel), true, ngraph::op::RoundingType::FLOOR, auto_pad);
+    auto avgPoolNode = std::make_shared<ov::op::v1::AvgPool>(
+        inputSquared, ov::Strides(strides), ov::Shape(pads_begin), ov::Shape(pads_end),
+        ov::Shape(kernel), true, ov::op::RoundingType::FLOOR, auto_pad);
 
-    sqrtOutput = std::make_shared<ngraph::op::v0::Sqrt>(avgPoolNode);
+    sqrtOutput = std::make_shared<ov::op::v0::Sqrt>(avgPoolNode);
 
     auto outputNode = applyActivation(sqrtOutput, activationFn);
 

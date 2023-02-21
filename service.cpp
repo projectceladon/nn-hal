@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <Utils.h>
 #include <log/log.h>
 #include "Driver.h"
 #define MAX_LENGTH (255)
@@ -57,15 +58,15 @@ int main(int argc, char* argv[]) {
 #else
 // This registers the SampleDriverFull into the DeviceManager.
 namespace android {
-namespace hardware {
-namespace neuralnetworks {
+namespace nn {
 
-::android::sp<V1_0::IDevice> V1_0::IDevice::getService(const std::string& serviceName, bool dummy) {
-    ALOGD("Initializaing the Intel NNHAL driver. Service name: %s", serviceName.c_str());
-    return new nnhal::Driver(nnhal::IntelDeviceType::CPU);
+GeneralResult<SharedDevice> getService(const std::string& serviceName) {
+    auto driver = new android::hardware::neuralnetworks::nnhal::Driver(
+        android::hardware::neuralnetworks::nnhal::IntelDeviceType::CPU);
+        abcd
+    return V1_3::utils::Device::create(serviceName, std::move(driver));
 }
 
-}  // namespace neuralnetworks
-}  // namespace hardware
+}  // namespace nn
 }  // namespace android
 #endif
