@@ -93,16 +93,18 @@ cc_library_static {
     ],
 
     header_libs: [
-        "libngraph_headers",
-        "libinference_headers",
+        "libopenvino_headers",
+        "libopenvino_intel_cpu_plugin_headers",
         "libnnhal_headers",
     ],
+
     include_dirs: [
         "packages/modules/NeuralNetworks/common/include",
         "packages/modules/NeuralNetworks/common/types/include",
         "packages/modules/NeuralNetworks/runtime/include",
-        "external/mesa3d/include/android_stub"
+        "external/mesa3d/include/android_stub",
     ],
+
     local_include_dirs: [
         "include/",
         "operations/include/",
@@ -127,7 +129,8 @@ cc_library_static {
 
     shared_libs: [
         "liblog",
-        "libngraph",
+        "libopenvino",
+        "libopenvino_intel_cpu_plugin",
         "libhidlmemory",
         "libhardware",
         "android.hardware.neuralnetworks@1.0",
@@ -141,5 +144,4 @@ cc_library_static {
     defaults: [
         "neuralnetworks_defaults"
     ]
-
 }

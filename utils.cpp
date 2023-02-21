@@ -38,10 +38,7 @@
 
 using namespace InferenceEngine;
 
-namespace android {
-namespace hardware {
-namespace neuralnetworks {
-namespace nnhal {
+namespace android::hardware::neuralnetworks::nnhal {
 
 unsigned int debugMask = ((1 << (L1 + 1)) - 1);
 
@@ -497,8 +494,4 @@ bool getGrpcIpPort(char *ip_port) {
     }
     return true;
 }
-
-}  // namespace nnhal
-}  // namespace neuralnetworks
-}  // namespace hardware
-}  // namespace android
+}  // namespace android::hardware::neuralnetworks::nnhal

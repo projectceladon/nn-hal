@@ -13,15 +13,11 @@ cc_library_shared {
         "utils.cpp",
         "IENetwork.cpp",
         "ModelManager.cpp",
-        "cpu/CpuPreparedModel.cpp",
-        "gna/GnaPreparedModel.cpp"
     ],
 
     local_include_dirs: [
         "ngraph_creator/include",
         "ngraph_creator/operations/include",
-        "cpu",
-        "gna"
     ],
 
     include_dirs: [
@@ -39,15 +35,13 @@ cc_library_shared {
         "external/protobuf",
         "external/protobuf/src",
         "external/protobuf/config",
-        "external/protobuf/android"
+        "external/protobuf/android",
     ],
 
     header_libs: [
-        "libngraph_headers",
-        "libinference_headers",
-        "libMKLDNNPlugin_headers",
+        "libopenvino_headers",
+        "libopenvino_intel_cpu_plugin_headers",
         "libpugixml_headers",
-        "plugin_api_headers",
     ],
 
     cflags: [
@@ -79,7 +73,6 @@ cc_library_shared {
     ] + [
         "-D__ANDROID__",
         "-DANDROID",
-        "-DIE_LEGACY",
     ],
 
     strip: {
@@ -95,6 +88,7 @@ cc_library_shared {
         "android.hidl.memory@1.0",
         "libbase",
         "libcutils",
+        "libutils",
         "libdl",
         "libfmq",
         "libhardware",
@@ -103,10 +97,8 @@ cc_library_shared {
         "liblog",
         "libnativewindow",
         "libtextclassifier_hash",
-        "libutils",
-        "libinference_engine",
-        "libngraph",
-        "libMKLDNNPlugin",
+        "libopenvino",
+        "libopenvino_intel_cpu_plugin",
         "libgrpc++",
         "libprotobuf-cpp-full"
     ],
@@ -180,7 +172,7 @@ cc_binary {
         "packages/modules/NeuralNetworks/common/types/include",
         "packages/modules/NeuralNetworks/runtime/include",
         "frameworks/native/libs/nativewindow/include",
-        "external/mesa3d/include/android_stub"
+        "external/mesa3d/include/android_stub",
     ],
 
     cflags: [
