@@ -22,7 +22,6 @@ cc_library_shared {
 
     include_dirs: [
         "packages/modules/NeuralNetworks/common/include",
-        "packages/modules/NeuralNetworks/common/types/include",
         "packages/modules/NeuralNetworks/runtime/include",
         "frameworks/native/libs/nativewindow/include",
         "external/mesa3d/include/android_stub",
@@ -169,7 +168,6 @@ cc_binary {
 
     include_dirs: [
         "packages/modules/NeuralNetworks/common/include",
-        "packages/modules/NeuralNetworks/common/types/include",
         "packages/modules/NeuralNetworks/runtime/include",
         "frameworks/native/libs/nativewindow/include",
         "external/mesa3d/include/android_stub",
