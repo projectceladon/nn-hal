@@ -21,9 +21,7 @@ cc_library_shared {
     ],
 
     include_dirs: [
-        "packages/modules/NeuralNetworks/common/include",
-        "packages/modules/NeuralNetworks/common/types/include",
-        "packages/modules/NeuralNetworks/runtime/include",
+        "frameworks/ml/nn/runtime/include/",
         "frameworks/native/libs/nativewindow/include",
         "external/mesa3d/include/android_stub",
         "external/grpc-grpc",
@@ -168,9 +166,8 @@ cc_binary {
     srcs: ["service.cpp"],
 
     include_dirs: [
-        "packages/modules/NeuralNetworks/common/include",
-        "packages/modules/NeuralNetworks/common/types/include",
-        "packages/modules/NeuralNetworks/runtime/include",
+        "frameworks/ml/nn/common/include",
+        "frameworks/ml/nn/runtime/include/",
         "frameworks/native/libs/nativewindow/include",
         "external/mesa3d/include/android_stub",
     ],
@@ -186,7 +183,6 @@ cc_binary {
 
     shared_libs: [
         "libhidlbase",
-        "libhidltransport",
         "libhidlmemory",
         "libutils",
         "liblog",
