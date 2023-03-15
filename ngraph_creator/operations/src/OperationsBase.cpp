@@ -85,7 +85,11 @@ void OperationsBase::connectOperationToGraph() {
     if (op.lifetime == OperandLifeTime::SUBGRAPH_OUTPUT) {
         // addResultNode(mDefaultOutputIndex, outputNode);
     }
-    mNgraphNodes->setOutputAtOperandIndex(mDefaultOutputIndex, outputNode->get_default_output());
+    if (outputNode != nullptr) {
+        mNgraphNodes->setOutputAtOperandIndex(mDefaultOutputIndex, outputNode->get_default_output());
+    } else {
+        ALOGE("%s invalid nullptr output node encountered", __func__);
+    }
 }
 
 void OperationsBase::addResultNode(size_t index, std::shared_ptr<ov::Node> resultNode) {
@@ -175,7 +179,7 @@ std::shared_ptr<ov::Node> OperationsBase::QuantizeNode(std::shared_ptr<ov::Node>
         data = std::make_shared<ov::opset3::Clamp>(sum, 0, 65535);
 
     std::shared_ptr<ov::Node> outputNode;
-    if (data->get_element_type() != quantizeType)
+    if (data != nullptr && data->get_element_type() != quantizeType)
         outputNode = std::make_shared<ov::opset3::Convert>(data, quantizeType);
     else
         outputNode = data;

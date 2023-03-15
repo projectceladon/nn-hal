@@ -68,7 +68,7 @@ cc_library_shared {
         "-Wno-conversion-null",
         "-Wnull-dereference",
         "-Warray-bounds",
-        "-O2",
+        "-O3",
         "-fPIC",
     ] + [
         "-D__ANDROID__",
