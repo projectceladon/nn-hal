@@ -47,7 +47,13 @@ int main(int argc, char* argv[]) {
 
         ALOGD("NN-HAL-1.3(%s) is ready.", deviceType);
         configureRpcThreadpool(4, true);
-        android::status_t status = device->registerAsService(deviceType);
+        android::status_t status = android::OK;
+        try {
+            status = device->registerAsService(deviceType);
+        } catch (const std::exception& ex) {
+            ALOGE("%s Exception !!! %s", __func__, ex.what());
+        }
+        
         LOG_ALWAYS_FATAL_IF(status != android::OK, "Error while registering as service for %s: %d",
                             deviceType, status);
         joinRpcThreadpool();

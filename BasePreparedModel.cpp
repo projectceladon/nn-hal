@@ -200,7 +200,14 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
             continue;
         }
         ALOGV("Input index: %d layername : %s", inIndex, inputNodeName.c_str());
-        auto destTensor = plugin->getInputTensor(i);
+        ov::Tensor destTensor;
+        try {
+            destTensor = plugin->getInputTensor(i);
+        } catch (const std::exception& ex) {
+            ALOGE("%s Exception !!! %s", __func__, ex.what());
+            notify(callback, ErrorStatus::GENERAL_FAILURE, {}, kNoTiming);
+            return;
+        }
         auto inOperandType = modelInfo->getOperandType(inIndex);
         switch (inOperandType) {
             case OperandType::TENSOR_INT32: {
@@ -279,7 +286,14 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
             continue;
         }
         ALOGV("Output index: %d layername : %s", outIndex, outputNodeName.c_str());
-        auto srcTensor = plugin->getOutputTensor(i);
+        ov::Tensor srcTensor;
+        try {
+            srcTensor = plugin->getOutputTensor(i);
+        } catch (const std::exception& ex) {
+            ALOGE("%s Exception !!! %s", __func__, ex.what());
+            notify(callback, ErrorStatus::GENERAL_FAILURE, {}, kNoTiming);
+            return;
+        }
         auto operandType = modelInfo->getOperandType(outIndex);
         uint32_t actualLength = srcTensor.get_byte_size();
         uint32_t expectedLength = 0;
@@ -413,7 +427,13 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         if(mRemoteCheck && mDetectionClient) {
             mDetectionClient->add_input_data(std::to_string(i), (uint8_t*)srcPtr, ngraphNw->getOutputShape(inIndex), len);
         } else {
-            auto destTensor = plugin->getInputTensor(i);
+            ov::Tensor destTensor;
+            try {
+                destTensor = plugin->getInputTensor(i);
+            } catch (const std::exception& ex) {
+                ALOGE("%s Exception !!! %s", __func__, ex.what());
+                return {ErrorStatus::GENERAL_FAILURE, {}, kNoTiming};
+            }
             auto inOperandType = modelInfo->getOperandType(inIndex);
             switch (inOperandType) {
                 case OperandType::TENSOR_INT32: {
@@ -495,7 +515,13 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
             continue;
         }
         ALOGV("Output index: %d layername : %s", outIndex, outputNodeName.c_str());
-        auto srcTensor = plugin->getOutputTensor(i);
+        ov::Tensor srcTensor;
+        try {
+            srcTensor = plugin->getOutputTensor(i);
+        } catch (const std::exception& ex) {
+            ALOGE("%s Exception !!! %s", __func__, ex.what());
+            return {ErrorStatus::GENERAL_FAILURE, {}, kNoTiming};
+        }
         auto operandType = modelInfo->getOperandType(outIndex);
         uint32_t actualLength = srcTensor.get_byte_size();
         uint32_t expectedLength = 0;
@@ -731,7 +757,14 @@ Return<void> BasePreparedModel::executeFenced(const V1_3::Request& request1_3,
             continue;
         }
         ALOGD("Input index: %d layername : %s", inIndex, inputNodeName.c_str());
-        auto destTensor = mPlugin->getInputTensor(i);
+        ov::Tensor destTensor;
+        try {
+            destTensor = mPlugin->getInputTensor(i);
+        } catch (const std::exception& ex) {
+            ALOGE("%s Exception !!! %s", __func__, ex.what());
+            cb(V1_3::ErrorStatus::GENERAL_FAILURE, hidl_handle(nullptr), nullptr);
+            return Void();
+        }
         auto inOperandType = mModelInfo->getOperandType(inIndex);
         switch (inOperandType) {
             case OperandType::TENSOR_INT32: {
@@ -812,7 +845,14 @@ Return<void> BasePreparedModel::executeFenced(const V1_3::Request& request1_3,
             continue;
         }
         ALOGD("Output index: %d layername : %s", outIndex, outputNodeName.c_str());
-        auto srcTensor = mPlugin->getOutputTensor(i);
+        ov::Tensor srcTensor;
+        try {
+            srcTensor = mPlugin->getOutputTensor(i);
+        } catch (const std::exception& ex) {
+            ALOGE("%s Exception !!! %s", __func__, ex.what());
+            cb(V1_3::ErrorStatus::GENERAL_FAILURE, hidl_handle(nullptr), nullptr);
+            return Void();
+        }
         auto operandType = mModelInfo->getOperandType(outIndex);
         uint32_t actualLength = srcTensor.get_byte_size();
         uint32_t expectedLength = 0;
