@@ -22,9 +22,6 @@ using objectDetection::RequestDataTensors;
 using objectDetection::RequestString;
 using time_point = std::chrono::system_clock::time_point;
 
-static std::string IR_XML("/data/vendor/neuralnetworks/ngraph_ir.xml");
-static std::string IR_BIN("/data/vendor/neuralnetworks/ngraph_ir.bin");
-
 class DetectionClient {
 public:
     DetectionClient(std::shared_ptr<Channel> channel) : stub_(Detection::NewStub(channel)){}
@@ -34,7 +31,7 @@ public:
     Status sendFile(std::string fileName,
                     std::unique_ptr<ClientWriter<RequestDataChunks> >& writer);
 
-    std::string sendIRs(bool& flag);
+    std::string sendIRs(bool& flag, const std::string& ir_xml, const std::string& ir_bin);
 
     void add_input_data(std::string label, const uint8_t* buffer, std::vector<size_t> shape, uint32_t size);
     void get_output_data(std::string label, uint8_t* buffer, std::vector<size_t> shape);

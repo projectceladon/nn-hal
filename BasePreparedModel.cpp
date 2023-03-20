@@ -35,10 +35,16 @@ using namespace android::nn;
 static const Timing kNoTiming = {.timeOnDevice = UINT64_MAX, .timeInDriver = UINT64_MAX};
 bool mRemoteCheck = false;
 std::shared_ptr<DetectionClient> mDetectionClient;
+uint32_t BasePreparedModel::mFileId = 0;
 
 void BasePreparedModel::deinitialize() {
     ALOGV("Entering %s", __func__);
     mModelInfo->unmapRuntimeMemPools();
+    auto ret_xml = std::remove(mXmlFile.c_str());
+    auto ret_bin = std::remove(mBinFile.c_str());
+    if ((ret_xml != 0) || (ret_bin != 0)) {
+        ALOGW("%s Deletion status of xml:%d, bin:%d", __func__, ret_xml, ret_bin);
+    }
 
     ALOGV("Exiting %s", __func__);
 }
@@ -68,9 +74,9 @@ bool BasePreparedModel::initialize() {
     }
     try {
         mPlugin = std::make_unique<IENetwork>(mTargetDevice, ov_model);
-        mPlugin->loadNetwork();
+        mPlugin->loadNetwork(mXmlFile, mBinFile);
         if(mRemoteCheck) {
-                auto resp = loadRemoteModel();
+                auto resp = loadRemoteModel(mXmlFile, mBinFile);
                 ALOGD("%s Load Remote Model returns %d", __func__, resp);
             } else {
                 ALOGD("%s Remote connection unavailable", __func__);
@@ -109,11 +115,11 @@ bool BasePreparedModel::checkRemoteConnection() {
     return is_success;
 }
 
-bool BasePreparedModel::loadRemoteModel() {
+bool BasePreparedModel::loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin) {
     ALOGI("Entering %s", __func__);
     bool is_success = false;
     if(mDetectionClient) {
-        auto reply = mDetectionClient->sendIRs(is_success);
+        auto reply = mDetectionClient->sendIRs(is_success, ir_xml, ir_bin);
         ALOGI("sendIRs response GRPC %d  %s", is_success, reply.c_str());
     }
     else {

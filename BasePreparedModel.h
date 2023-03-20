@@ -55,6 +55,9 @@ class BasePreparedModel : public V1_3::IPreparedModel {
 public:
     BasePreparedModel(const IntelDeviceType device, const Model& model) : mTargetDevice(device) {
         mModelInfo = std::make_shared<NnapiModelInfo>(model);
+        mXmlFile = std::string("/data/vendor/neuralnetworks/") + std::to_string(mFileId) + std::string(".xml");
+        mBinFile = std::string("/data/vendor/neuralnetworks/") + std::to_string(mFileId) + std::string(".bin");
+        mFileId++;
     }
 
     virtual ~BasePreparedModel() { deinitialize(); }
@@ -86,7 +89,7 @@ public:
 
     virtual bool initialize();
     virtual bool checkRemoteConnection();
-    virtual bool loadRemoteModel();
+    virtual bool loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin);
 
     std::shared_ptr<NnapiModelInfo> getModelInfo() { return mModelInfo; }
 
@@ -103,6 +106,10 @@ protected:
     std::shared_ptr<NnapiModelInfo> mModelInfo;
     std::shared_ptr<NgraphNetworkCreator> mNgraphNetCreator;
     std::shared_ptr<IIENetwork> mPlugin;
+private:
+    static uint32_t mFileId;
+    std::string mXmlFile;
+    std::string mBinFile;
 };
 
 class BaseFencedExecutionCallback : public V1_3::IFencedExecutionCallback {

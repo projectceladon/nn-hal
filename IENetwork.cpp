@@ -9,7 +9,7 @@
 
 namespace android::hardware::neuralnetworks::nnhal {
 
-bool IENetwork::loadNetwork() {
+bool IENetwork::loadNetwork(const std::string& ir_xml, const std::string& ir_bin) {
     ALOGV("%s", __func__);
 
 #if __ANDROID__
@@ -38,8 +38,7 @@ bool IENetwork::loadNetwork() {
         compiled_model = ie.compile_model(mNetwork, deviceStr);
         ALOGD("loadNetwork is done....");
 #if __ANDROID__
-        ov::serialize(mNetwork, "/data/vendor/neuralnetworks/ngraph_ir.xml",
-                        "/data/vendor/neuralnetworks/ngraph_ir.bin",
+        ov::serialize(mNetwork, ir_xml, ir_bin,
                         ov::pass::Serialize::Version::IR_V11);
 #else
         ov::pass::Manager manager;
@@ -48,7 +47,7 @@ bool IENetwork::loadNetwork() {
 #endif
         std::vector<ov::Output<ov::Node>> modelInput = mNetwork->inputs();
         mInferRequest = compiled_model.create_infer_request();
-        ALOGD("CreateInfereRequest is done....");
+        ALOGD("CreateInferRequest is done....");
 
     } else {
         ALOGE("Invalid Network pointer");
@@ -73,10 +72,9 @@ ov::Tensor IENetwork::getOutputTensor(const std::size_t index) {
 }
 
 void IENetwork::infer() {
-    ALOGI("infer Network\n");
-    mInferRequest.start_async();
-    mInferRequest.wait_for(std::chrono::milliseconds(10000));
-    ALOGI("infer request completed");
+    ALOGI("infer requested");
+    mInferRequest.infer();
+    ALOGI("infer completed");
 }
 
 }  // namespace android::hardware::neuralnetworks::nnhal
