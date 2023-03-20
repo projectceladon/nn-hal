@@ -47,19 +47,19 @@ Status DetectionClient::sendFile(std::string fileName,
     return writer->Finish();
 }
 
-std::string DetectionClient::sendIRs(bool& flag) {
+std::string DetectionClient::sendIRs(bool& flag, const std::string& ir_xml, const std::string& ir_bin) {
     ReplyStatus reply;
     ClientContext context;
     std::unique_ptr<ClientWriter<RequestDataChunks> > writerXml =
         std::unique_ptr<ClientWriter<RequestDataChunks> >(stub_->sendXml(&context, &reply));
-    Status status = sendFile(IR_XML, writerXml);
+    Status status = sendFile(ir_xml, writerXml);
 
     if (status.ok()) {
         ClientContext newContext;
         std::unique_ptr<ClientWriter<RequestDataChunks> > writerBin =
             std::unique_ptr<ClientWriter<RequestDataChunks> >(
                 stub_->sendBin(&newContext, &reply));
-        status = sendFile(IR_BIN, writerBin);
+        status = sendFile(ir_bin, writerBin);
         if (status.ok()) {
             flag = reply.status();
             return (flag ? "status True" : "status False");
