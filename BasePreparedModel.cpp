@@ -331,55 +331,49 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
         }
 
         if (mRemoteCheck && mDetectionClient && mDetectionClient->get_status()) {
-            mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)srcTensor.data<float>(),  ngraphNw->getOutputShape(outIndex));
-            ALOGD("Got output");
-        }
-
-        switch (operandType) {
-            case OperandType::TENSOR_INT32: {
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int32_t>(),
-                            srcTensor.get_byte_size());
-                break;
+            mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
+                                              ngraphNw->getOutputShape(outIndex));
+        } else {
+            switch (operandType) {
+                case OperandType::TENSOR_INT32:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int32_t>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_FLOAT32:
+                    std::memcpy((uint8_t*)destPtr, srcTensor.data<float>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_BOOL8:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<bool>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_QUANT8_ASYMM:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint8_t>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_QUANT8_SYMM:
+                case OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL:
+                case OperandType::TENSOR_QUANT8_ASYMM_SIGNED:
+                    std::memcpy((int8_t*)destPtr, (int8_t*)srcTensor.data<int8_t>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_FLOAT16:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<ov::float16>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_QUANT16_SYMM:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int16_t>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_QUANT16_ASYMM:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint16_t>(),
+                                srcTensor.get_byte_size());
+                    break;
+                default:
+                    std::memcpy((uint8_t*)destPtr, srcTensor.data<uint8_t>(),
+                                srcTensor.get_byte_size());
+                    break;
             }
-            case OperandType::TENSOR_FLOAT32: {
-                std::memcpy((uint8_t*)destPtr, srcTensor.data<float>(), srcTensor.get_byte_size());
-                break;
-            }
-            case OperandType::TENSOR_BOOL8: {
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<bool>(),
-                            srcTensor.get_byte_size());
-                break;
-            }
-            case OperandType::TENSOR_QUANT8_ASYMM: {
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint8_t>(),
-                            srcTensor.get_byte_size());
-                break;
-            }
-            case OperandType::TENSOR_QUANT8_SYMM:
-            case OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL:
-            case OperandType::TENSOR_QUANT8_ASYMM_SIGNED: {
-                std::memcpy((int8_t*)destPtr, (int8_t*)srcTensor.data<int8_t>(),
-                            srcTensor.get_byte_size());
-                break;
-            }
-            case OperandType::TENSOR_FLOAT16: {
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<ov::float16>(),
-                            srcTensor.get_byte_size());
-                break;
-            }
-            case OperandType::TENSOR_QUANT16_SYMM: {
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int16_t>(),
-                            srcTensor.get_byte_size());
-                break;
-            }
-            case OperandType::TENSOR_QUANT16_ASYMM: {
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint16_t>(),
-                            srcTensor.get_byte_size());
-                break;
-            }
-            default:
-                std::memcpy((uint8_t*)destPtr, srcTensor.data<uint8_t>(), srcTensor.get_byte_size());
-                break;
         }
     }
 
@@ -558,54 +552,49 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         //copy output from remote infer
         //TODO: Add support for other OperandType
         if (mRemoteCheck && mDetectionClient && mDetectionClient->get_status()) {
-            mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)srcTensor.data<float>(),  ngraphNw->getOutputShape(outIndex));
-        }
-
-        switch (operandType) {
-            case OperandType::TENSOR_INT32:
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int32_t>(),
-                            srcTensor.get_byte_size());
-                break;
-            case OperandType::TENSOR_FLOAT32: {
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<float>(),
-                            srcTensor.get_byte_size());
-                break;
+            mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
+                                              ngraphNw->getOutputShape(outIndex));
+        } else {
+            switch (operandType) {
+                case OperandType::TENSOR_INT32:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int32_t>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_FLOAT32:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<float>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_BOOL8:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<bool>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_QUANT8_ASYMM:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint8_t>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_QUANT8_SYMM:
+                case OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL:
+                case OperandType::TENSOR_QUANT8_ASYMM_SIGNED:
+                    std::memcpy((int8_t*)destPtr, (int8_t*)srcTensor.data<int8_t>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_FLOAT16:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<ov::float16>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_QUANT16_SYMM:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int16_t>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_QUANT16_ASYMM:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint16_t>(),
+                                srcTensor.get_byte_size());
+                    break;
+                default:
+                    std::memcpy((uint8_t*)destPtr, srcTensor.data<uint8_t>(),
+                                srcTensor.get_byte_size());
+                    break;
             }
-            case OperandType::TENSOR_BOOL8: {
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<bool>(),
-                            srcTensor.get_byte_size());
-                break;
-            }
-            case OperandType::TENSOR_QUANT8_ASYMM: {
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint8_t>(),
-                            srcTensor.get_byte_size());
-                break;
-            }
-            case OperandType::TENSOR_QUANT8_SYMM:
-            case OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL:
-            case OperandType::TENSOR_QUANT8_ASYMM_SIGNED: {
-                std::memcpy((int8_t*)destPtr, (int8_t*)srcTensor.data<int8_t>(),
-                            srcTensor.get_byte_size());
-                break;
-            }
-            case OperandType::TENSOR_FLOAT16: {
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<ov::float16>(),
-                            srcTensor.get_byte_size());
-                break;
-            }
-            case OperandType::TENSOR_QUANT16_SYMM: {
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int16_t>(),
-                            srcTensor.get_byte_size());
-                break;
-            }
-            case OperandType::TENSOR_QUANT16_ASYMM: {
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint16_t>(),
-                            srcTensor.get_byte_size());
-                break;
-            }
-            default:
-                std::memcpy((uint8_t*)destPtr, srcTensor.data<uint8_t>(), srcTensor.get_byte_size());
-                break;
         }
     }
 
@@ -874,52 +863,51 @@ Return<void> BasePreparedModel::executeFenced(const V1_3::Request& request1_3,
         } else {
             mModelInfo->updateOutputshapes(i, outDims);
         }
-        switch (operandType) {
-            case OperandType::TENSOR_INT32: {
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int32_t>(),
-                            srcTensor.get_byte_size());
-                break;
+
+        if (mRemoteCheck && mDetectionClient && mDetectionClient->get_status()) {
+            mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
+                                              mNgraphNetCreator->getOutputShape(outIndex));
+        } else {
+            switch (operandType) {
+                case OperandType::TENSOR_INT32:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int32_t>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_FLOAT32:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<float>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_BOOL8:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<bool>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_QUANT8_ASYMM:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint8_t>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_QUANT8_SYMM:
+                case OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL:
+                case OperandType::TENSOR_QUANT8_ASYMM_SIGNED:
+                    std::memcpy((int8_t*)destPtr, (int8_t*)srcTensor.data<int8_t>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_FLOAT16:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<ov::float16>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_QUANT16_SYMM:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int16_t>(),
+                                srcTensor.get_byte_size());
+                    break;
+                case OperandType::TENSOR_QUANT16_ASYMM:
+                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint16_t>(),
+                                srcTensor.get_byte_size());
+                    break;
+                default:
+                    std::memcpy((uint8_t*)destPtr, srcTensor.data<uint8_t>(),
+                                srcTensor.get_byte_size());
+                    break;
             }
-            case OperandType::TENSOR_FLOAT32: {
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<float>(),
-                            srcTensor.get_byte_size());
-                break;
-            }
-            case OperandType::TENSOR_BOOL8: {
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<bool>(),
-                            srcTensor.get_byte_size());
-                break;
-            }
-            case OperandType::TENSOR_QUANT8_ASYMM: {
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint8_t>(),
-                            srcTensor.get_byte_size());
-                break;
-            }
-            case OperandType::TENSOR_QUANT8_SYMM:
-            case OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL:
-            case OperandType::TENSOR_QUANT8_ASYMM_SIGNED: {
-                std::memcpy((int8_t*)destPtr, (int8_t*)srcTensor.data<int8_t>(),
-                            srcTensor.get_byte_size());
-                break;
-            }
-            case OperandType::TENSOR_FLOAT16: {
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<ov::float16>(),
-                            srcTensor.get_byte_size());
-                break;
-            }
-            case OperandType::TENSOR_QUANT16_SYMM: {
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int16_t>(),
-                            srcTensor.get_byte_size());
-                break;
-            }
-            case OperandType::TENSOR_QUANT16_ASYMM: {
-                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint16_t>(),
-                            srcTensor.get_byte_size());
-                break;
-            }
-            default:
-                std::memcpy((uint8_t*)destPtr, srcTensor.data<uint8_t>(), srcTensor.get_byte_size());
-                break;
         }
     }
 
