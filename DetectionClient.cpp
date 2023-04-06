@@ -104,7 +104,7 @@ void DetectionClient::clear_data() {
 
 std::string DetectionClient::remote_infer() {
     ClientContext context;
-    time_point deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(1000);
+    time_point deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(20000);
     context.set_deadline(deadline);
 
     status = stub_->getInferResult(&context, request, &reply);
