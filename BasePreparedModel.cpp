@@ -195,6 +195,7 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
         return;
     }
 
+    size_t tensorIndex = 0;
     for (size_t i = 0; i < request.inputs.size(); i++) {
         uint32_t len;
         auto inIndex = modelInfo->getModelInputIndex(i);
@@ -208,7 +209,7 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
         ALOGV("Input index: %d layername : %s", inIndex, inputNodeName.c_str());
         ov::Tensor destTensor;
         try {
-            destTensor = plugin->getInputTensor(i);
+            destTensor = plugin->getInputTensor(tensorIndex++);
         } catch (const std::exception& ex) {
             ALOGE("%s Exception !!! %s", __func__, ex.what());
             notify(callback, ErrorStatus::GENERAL_FAILURE, {}, kNoTiming);
@@ -283,6 +284,7 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
     }
     if (measure == MeasureTiming::YES) deviceEnd = now();
 
+    tensorIndex = 0;
     for (size_t i = 0; i < request.outputs.size(); i++) {
         auto outIndex = modelInfo->getModelOutputIndex(i);
         ALOGI("OutputIndex: %d", outIndex);
@@ -294,7 +296,7 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
         ALOGV("Output index: %d layername : %s", outIndex, outputNodeName.c_str());
         ov::Tensor srcTensor;
         try {
-            srcTensor = plugin->getOutputTensor(i);
+            srcTensor = plugin->getOutputTensor(tensorIndex++);
         } catch (const std::exception& ex) {
             ALOGE("%s Exception !!! %s", __func__, ex.what());
             notify(callback, ErrorStatus::GENERAL_FAILURE, {}, kNoTiming);
@@ -411,6 +413,7 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         return {ErrorStatus::GENERAL_FAILURE, {}, kNoTiming};
     }
 
+    size_t tensorIndex = 0;
     for (size_t i = 0; i < request.inputs.size(); i++) {
         uint32_t len;
         auto inIndex = modelInfo->getModelInputIndex(i);
@@ -429,7 +432,7 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         } else {
             ov::Tensor destTensor;
             try {
-                destTensor = plugin->getInputTensor(i);
+                destTensor = plugin->getInputTensor(tensorIndex++);
             } catch (const std::exception& ex) {
                 ALOGE("%s Exception !!! %s", __func__, ex.what());
                 return {ErrorStatus::GENERAL_FAILURE, {}, kNoTiming};
@@ -506,6 +509,7 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
     }
     if (measure == MeasureTiming::YES) deviceEnd = now();
 
+    tensorIndex = 0;
     for (size_t i = 0; i < request.outputs.size(); i++) {
         auto outIndex = modelInfo->getModelOutputIndex(i);
         ALOGV("OutputIndex: %d", outIndex);
@@ -517,7 +521,7 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         ALOGV("Output index: %d layername : %s", outIndex, outputNodeName.c_str());
         ov::Tensor srcTensor;
         try {
-            srcTensor = plugin->getOutputTensor(i);
+            srcTensor = plugin->getOutputTensor(tensorIndex++);
         } catch (const std::exception& ex) {
             ALOGE("%s Exception !!! %s", __func__, ex.what());
             return {ErrorStatus::GENERAL_FAILURE, {}, kNoTiming};
@@ -741,6 +745,7 @@ Return<void> BasePreparedModel::executeFenced(const V1_3::Request& request1_3,
     time_point driverAfterFence;
     if (measure == MeasureTiming::YES) driverAfterFence = now();
 
+    size_t tensorIndex = 0;
     for (size_t i = 0; i < request.inputs.size(); i++) {
         uint32_t len;
         auto inIndex = mModelInfo->getModelInputIndex(i);
@@ -754,7 +759,7 @@ Return<void> BasePreparedModel::executeFenced(const V1_3::Request& request1_3,
         ALOGD("Input index: %d layername : %s", inIndex, inputNodeName.c_str());
         ov::Tensor destTensor;
         try {
-            destTensor = mPlugin->getInputTensor(i);
+            destTensor = mPlugin->getInputTensor(tensorIndex++);
         } catch (const std::exception& ex) {
             ALOGE("%s Exception !!! %s", __func__, ex.what());
             cb(V1_3::ErrorStatus::GENERAL_FAILURE, hidl_handle(nullptr), nullptr);
@@ -831,6 +836,7 @@ Return<void> BasePreparedModel::executeFenced(const V1_3::Request& request1_3,
     }
     if (measure == MeasureTiming::YES) deviceEnd = now();
 
+    tensorIndex = 0;
     for (size_t i = 0; i < request.outputs.size(); i++) {
         auto outIndex = mModelInfo->getModelOutputIndex(i);
         ALOGI("OutputIndex: %d", outIndex);
@@ -842,7 +848,7 @@ Return<void> BasePreparedModel::executeFenced(const V1_3::Request& request1_3,
         ALOGD("Output index: %d layername : %s", outIndex, outputNodeName.c_str());
         ov::Tensor srcTensor;
         try {
-            srcTensor = mPlugin->getOutputTensor(i);
+            srcTensor = mPlugin->getOutputTensor(tensorIndex++);
         } catch (const std::exception& ex) {
             ALOGE("%s Exception !!! %s", __func__, ex.what());
             cb(V1_3::ErrorStatus::GENERAL_FAILURE, hidl_handle(nullptr), nullptr);

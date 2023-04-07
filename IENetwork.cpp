@@ -45,7 +45,6 @@ bool IENetwork::loadNetwork(const std::string& ir_xml, const std::string& ir_bin
         manager.register_pass<ov::pass::Serialize>("/tmp/model.xml", "/tmp/model.bin");
         manager.run_passes(mNetwork);
 #endif
-        std::vector<ov::Output<ov::Node>> modelInput = mNetwork->inputs();
         mInferRequest = compiled_model.create_infer_request();
         ALOGD("CreateInferRequest is done....");
 

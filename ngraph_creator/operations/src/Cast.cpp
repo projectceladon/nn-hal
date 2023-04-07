@@ -22,8 +22,8 @@ std::shared_ptr<ov::Node> Cast::createNode() {
     auto inputIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 0);
     auto outputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 
-    const auto& inputType = sModelInfo->getOperationType(inputIndex);
-    const auto& outputType = sModelInfo->getOperationType(outputIndex);
+    const auto& inputType = sModelInfo->getOperandType(inputIndex);
+    const auto& outputType = sModelInfo->getOperandType(outputIndex);
 
     ov::element::Type elementType;  // change to outputbased element type
     std::shared_ptr<ov::Node> outputNode;
