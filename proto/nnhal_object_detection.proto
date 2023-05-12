@@ -27,6 +27,7 @@ service Detection {
   rpc getInferResult (RequestDataTensors) returns (ReplyDataTensors) {}
   rpc sendXml (stream RequestDataChunks) returns (ReplyStatus) {}
   rpc sendBin (stream RequestDataChunks) returns (ReplyStatus) {}
+  rpc loadModel(RequestString) returns (ReplyStatus) {}
   rpc prepare (RequestString) returns (ReplyStatus) {} //Placeholder for any future support : RequestString
 }
 
@@ -47,6 +48,25 @@ message DataTensor {
   bytes data = 1;
   string node_name = 2;
   repeated int32 tensor_shape = 3;
+  enum DATA_TYPE {
+    boolean = 0;
+    bf16 = 1;
+    f16 = 2;
+    f32 = 3;
+    f64 = 4;
+    i4 = 5;
+    i8 = 6;
+    i16 = 7;
+    i32 = 8;
+    i64 = 9;
+    u1 = 10;
+    u4 = 11;
+    u8 = 12;
+    u16 = 13;
+    u32 = 14;
+    u64 = 15;
+  }
+  DATA_TYPE data_type = 4;
 }
 
 // Reply message containing the Output Data Tensors(blobs)
