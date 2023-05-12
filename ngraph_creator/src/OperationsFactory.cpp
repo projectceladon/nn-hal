@@ -44,8 +44,6 @@ std::shared_ptr<OperationsBase> OperationsFactory::getOperation(
             return std::make_shared<DepthToSpace>(operationIndex);
         case OperationType::DEPTHWISE_CONV_2D:
             return std::make_shared<DepthwiseConv2d>(operationIndex);
-        case OperationType::DEQUANTIZE:
-            return std::make_shared<Dequantize>(operationIndex);
         case OperationType::DIV:
             return std::make_shared<Div>(operationIndex);
         case OperationType::EMBEDDING_LOOKUP:
@@ -72,8 +70,6 @@ std::shared_ptr<OperationsBase> OperationsFactory::getOperation(
             return std::make_shared<InstanceNormalization>(operationIndex);
         case OperationType::L2_POOL_2D:
             return std::make_shared<L2Pooling2D>(operationIndex);
-        case OperationType::L2_NORMALIZATION:
-            return std::make_shared<L2Normalization>(operationIndex);
         case OperationType::LSTM:
             return std::make_shared<LSTM>(operationIndex);
         case OperationType::LESS:
@@ -114,8 +110,6 @@ std::shared_ptr<OperationsBase> OperationsFactory::getOperation(
             return std::make_shared<Pow>(operationIndex);
         case OperationType::PRELU:
             return std::make_shared<PRelu>(operationIndex);
-        case OperationType::QUANTIZE:
-            return std::make_shared<Quantize>(operationIndex);
         case OperationType::REDUCE_ALL:
             return std::make_shared<ReduceAll>(operationIndex);
         case OperationType::REDUCE_ANY:
@@ -144,10 +138,6 @@ std::shared_ptr<OperationsBase> OperationsFactory::getOperation(
             return std::make_shared<ROIPooling>(operationIndex);
         case OperationType::RSQRT:
             return std::make_shared<RSQRT>(operationIndex);
-        case OperationType::RESIZE_BILINEAR:
-            return std::make_shared<ResizeBilinear>(operationIndex);
-        case OperationType::RESIZE_NEAREST_NEIGHBOR:
-            return std::make_shared<ResizeNearestNeighbor>(operationIndex);
         case OperationType::SELECT:
             return std::make_shared<Select>(operationIndex);
         case OperationType::SOFTMAX:
@@ -160,8 +150,6 @@ std::shared_ptr<OperationsBase> OperationsFactory::getOperation(
             return std::make_shared<SQRT>(operationIndex);
         case OperationType::SIN:
             return std::make_shared<Sin>(operationIndex);
-        case OperationType::SPLIT:
-            return std::make_shared<Split>(operationIndex);
         case OperationType::STRIDED_SLICE:
             return std::make_shared<StridedSlice>(operationIndex);
         case OperationType::SQUEEZE:
@@ -172,10 +160,6 @@ std::shared_ptr<OperationsBase> OperationsFactory::getOperation(
             return std::make_shared<Tanh>(operationIndex);
         case OperationType::TOPK_V2:
             return std::make_shared<TopkV2>(operationIndex);
-        case OperationType::TRANSPOSE_CONV_2D:
-            return std::make_shared<TransposeConv2D>(operationIndex);
-        case OperationType::TRANSPOSE:
-            return std::make_shared<Transpose>(operationIndex);
         case OperationType::UNIDIRECTIONAL_SEQUENCE_RNN:
             return std::make_shared<UnidirectionalSequenceRNN>(operationIndex);
         default:
