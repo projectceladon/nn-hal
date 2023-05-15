@@ -133,7 +133,6 @@ public:
         const auto value = GetConstOperand<T>(inputIndex);
         ALOGV("Operation input index: %d, operand index: %d", index, inputIndex);
         ALOGV("Operation: %s", toString(mModel.main.operations[operationIndex]).c_str());
-        printHelper<T>::print(value, toString(operand).c_str());
 
         return value;
     }

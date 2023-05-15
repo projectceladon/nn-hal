@@ -403,6 +403,7 @@ Return<V1_3::ErrorStatus> Driver::prepareModel_1_3(
 
     // TODO: make asynchronous later
     sp<BasePreparedModel> driverPreparedModel = ModelFactory(mDeviceType, model);
+    for (auto& opn : model.main.operations) dumpOperation(opn);
     if (!driverPreparedModel->initialize()) {
         ALOGI("Failed to initialize prepared model");
         cb->notify_1_3(convertToV1_3(ErrorStatus::INVALID_ARGUMENT), nullptr);
