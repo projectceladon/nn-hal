@@ -66,7 +66,22 @@ bool BasePreparedModel::initialize() {
         ALOGE("Failed to initialize Model runtime parameters!!");
         return false;
     }
-    mRemoteCheck = checkRemoteConnection();
+
+    mRemoteCheck = true;
+    for (auto i : mModelInfo->getModelInputIndexes()) {
+        auto& nnapiOperandType = mModelInfo->getOperand(i).type;
+        switch (nnapiOperandType) {
+                    case OperandType::FLOAT32:
+                    case OperandType::TENSOR_FLOAT32:
+                        break;
+                    default:
+                        ALOGD("GRPC Remote Infer not enabled for %d", nnapiOperandType);
+                        mRemoteCheck = false;
+                        break;
+        }
+        if (!mRemoteCheck) break;
+    }
+    if (mRemoteCheck) mRemoteCheck = checkRemoteConnection();
     mNgraphNetCreator = std::make_shared<NgraphNetworkCreator>(mModelInfo, mTargetDevice);
 
     if (!mNgraphNetCreator->validateOperations()) return false;
