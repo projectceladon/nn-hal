@@ -89,6 +89,7 @@ public:
     virtual bool initialize();
     virtual bool checkRemoteConnection();
     virtual bool loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin);
+    virtual void setRemoteEnabled(bool flag);
 
     std::shared_ptr<NnapiModelInfo> getModelInfo() { return mModelInfo; }
 
