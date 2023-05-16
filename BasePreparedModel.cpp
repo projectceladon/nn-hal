@@ -45,10 +45,7 @@ void BasePreparedModel::deinitialize() {
     if ((ret_xml != 0) || (ret_bin != 0)) {
         ALOGW("%s Deletion status of xml:%d, bin:%d", __func__, ret_xml, ret_bin);
     }
-    if(mRemoteCheck) {
-        ALOGD("GRPC RELEASED Remote Connection");
-        gRemoteCheck = false;
-    }
+    setRemoteEnabled(false);
 
     ALOGV("Exiting %s", __func__);
 }
@@ -66,7 +63,8 @@ bool BasePreparedModel::initialize() {
         ALOGE("Failed to initialize Model runtime parameters!!");
         return false;
     }
-    mRemoteCheck = checkRemoteConnection();
+
+    setRemoteEnabled(checkRemoteConnection());
     mNgraphNetCreator = std::make_shared<NgraphNetworkCreator>(mModelInfo, mTargetDevice);
 
     if (!mNgraphNetCreator->validateOperations()) return false;
@@ -96,15 +94,18 @@ bool BasePreparedModel::initialize() {
 
 bool BasePreparedModel::checkRemoteConnection() {
     if(gRemoteCheck) {
-        ALOGD("GRPC Remote Connection already under use");
+        ALOGD("%s GRPC Remote Connection Busy", __func__);
         return false;
     }
     char grpc_prop[PROPERTY_VALUE_MAX] = "";
     bool is_success = false;
     if(getGrpcIpPort(grpc_prop)) {
         ALOGV("Attempting GRPC via TCP : %s", grpc_prop);
+        grpc::ChannelArguments args;
+        args.SetMaxReceiveMessageSize(INT_MAX);
+        args.SetMaxSendMessageSize(INT_MAX);
         gDetectionClient = std::make_shared<DetectionClient>(
-            grpc::CreateChannel(grpc_prop, grpc::InsecureChannelCredentials()));
+            grpc::CreateCustomChannel(grpc_prop, grpc::InsecureChannelCredentials(), args));
         if(gDetectionClient) {
             auto reply = gDetectionClient->prepare(is_success);
             ALOGI("GRPC(TCP) prepare response is %d : %s", is_success, reply.c_str());
@@ -112,15 +113,17 @@ bool BasePreparedModel::checkRemoteConnection() {
     }
     if (!is_success && getGrpcSocketPath(grpc_prop)) {
         ALOGV("Attempting GRPC via unix : %s", grpc_prop);
+        grpc::ChannelArguments args;
+        args.SetMaxReceiveMessageSize(INT_MAX);
+        args.SetMaxSendMessageSize(INT_MAX);
         gDetectionClient = std::make_shared<DetectionClient>(
-            grpc::CreateChannel(std::string("unix:") + grpc_prop, grpc::InsecureChannelCredentials()));
+            grpc::CreateCustomChannel(std::string("unix:") + grpc_prop, grpc::InsecureChannelCredentials(), args));
         if(gDetectionClient) {
             auto reply = gDetectionClient->prepare(is_success);
             ALOGI("GRPC(unix) prepare response is %d : %s", is_success, reply.c_str());
         }
     }
-    gRemoteCheck = is_success;
-    ALOGD("GRPC ACQUIRED Remote Connection");
+    setRemoteEnabled(is_success);
     return is_success;
 }
 
@@ -137,8 +140,20 @@ bool BasePreparedModel::loadRemoteModel(const std::string& ir_xml, const std::st
     else {
         ALOGE("%s gDetectionClient is null",__func__);
     }
-    mRemoteCheck = is_success;
+    setRemoteEnabled(is_success);
     return is_success;
+}
+
+void BasePreparedModel::setRemoteEnabled(bool flag) {
+    if (gRemoteCheck && flag) {
+        ALOGD("%s GRPC Remote Connection Busy", __func__);
+        return;
+    }
+    if(mRemoteCheck != flag) {
+        ALOGD("GRPC %s Remote Connection", flag ? "ACQUIRED" : "RELEASED");
+        gRemoteCheck = flag;
+        mRemoteCheck = flag;
+    }
 }
 
 static Return<void> notify(const sp<V1_0::IExecutionCallback>& callback, const ErrorStatus& status,
