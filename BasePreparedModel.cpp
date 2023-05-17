@@ -527,6 +527,9 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         ALOGI("***********GRPC server response************* %s", reply.c_str());
     }
     if (!preparedModel->mRemoteCheck || !gDetectionClient->get_status()){
+        if(preparedModel->mRemoteCheck) {
+            preparedModel->setRemoteEnabled(false);
+        }
         try {
             ALOGV("%s Client Infer", __func__);
             plugin->infer();
