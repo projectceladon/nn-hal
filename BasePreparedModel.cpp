@@ -33,18 +33,19 @@ namespace android::hardware::neuralnetworks::nnhal {
 using namespace android::nn;
 
 static const Timing kNoTiming = {.timeOnDevice = UINT64_MAX, .timeInDriver = UINT64_MAX};
-bool gRemoteCheck = false;
-std::shared_ptr<DetectionClient> gDetectionClient;
 uint32_t BasePreparedModel::mFileId = 0;
 
 void BasePreparedModel::deinitialize() {
     ALOGV("Entering %s", __func__);
+    bool is_success = false;
     mModelInfo->unmapRuntimeMemPools();
     auto ret_xml = std::remove(mXmlFile.c_str());
     auto ret_bin = std::remove(mBinFile.c_str());
     if ((ret_xml != 0) || (ret_bin != 0)) {
         ALOGW("%s Deletion status of xml:%d, bin:%d", __func__, ret_xml, ret_bin);
     }
+    auto reply = mDetectionClient->release(is_success);
+    ALOGI("GRPC release response is %d : %s", is_success, reply.c_str());
     setRemoteEnabled(false);
 
     ALOGV("Exiting %s", __func__);
@@ -108,10 +109,6 @@ bool BasePreparedModel::initialize() {
 }
 
 bool BasePreparedModel::checkRemoteConnection() {
-    if(gRemoteCheck) {
-        ALOGD("%s GRPC Remote Connection Busy", __func__);
-        return false;
-    }
     char grpc_prop[PROPERTY_VALUE_MAX] = "";
     bool is_success = false;
     if(getGrpcIpPort(grpc_prop)) {
@@ -119,10 +116,10 @@ bool BasePreparedModel::checkRemoteConnection() {
         grpc::ChannelArguments args;
         args.SetMaxReceiveMessageSize(INT_MAX);
         args.SetMaxSendMessageSize(INT_MAX);
-        gDetectionClient = std::make_shared<DetectionClient>(
-            grpc::CreateCustomChannel(grpc_prop, grpc::InsecureChannelCredentials(), args));
-        if(gDetectionClient) {
-            auto reply = gDetectionClient->prepare(is_success);
+        mDetectionClient = std::make_shared<DetectionClient>(
+            grpc::CreateCustomChannel(grpc_prop, grpc::InsecureChannelCredentials(), args), mFileId);
+        if(mDetectionClient) {
+            auto reply = mDetectionClient->prepare(is_success);
             ALOGI("GRPC(TCP) prepare response is %d : %s", is_success, reply.c_str());
         }
     }
@@ -131,10 +128,10 @@ bool BasePreparedModel::checkRemoteConnection() {
         grpc::ChannelArguments args;
         args.SetMaxReceiveMessageSize(INT_MAX);
         args.SetMaxSendMessageSize(INT_MAX);
-        gDetectionClient = std::make_shared<DetectionClient>(
-            grpc::CreateCustomChannel(std::string("unix:") + grpc_prop, grpc::InsecureChannelCredentials(), args));
-        if(gDetectionClient) {
-            auto reply = gDetectionClient->prepare(is_success);
+        mDetectionClient = std::make_shared<DetectionClient>(
+            grpc::CreateCustomChannel(std::string("unix:") + grpc_prop, grpc::InsecureChannelCredentials(), args), mFileId);
+        if(mDetectionClient) {
+            auto reply = mDetectionClient->prepare(is_success);
             ALOGI("GRPC(unix) prepare response is %d : %s", is_success, reply.c_str());
         }
     }
@@ -145,28 +142,23 @@ bool BasePreparedModel::checkRemoteConnection() {
 bool BasePreparedModel::loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin) {
     ALOGI("Entering %s", __func__);
     bool is_success = false;
-    if(gDetectionClient) {
-        auto reply = gDetectionClient->sendIRs(is_success, ir_xml, ir_bin);
+    if(mDetectionClient) {
+        auto reply = mDetectionClient->sendIRs(is_success, ir_xml, ir_bin);
         ALOGI("sendIRs response GRPC %d  %s", is_success, reply.c_str());
         if (reply == "status False") {
             ALOGE("%s Model Load Failed",__func__);
         }
     }
     else {
-        ALOGE("%s gDetectionClient is null",__func__);
+        ALOGE("%s mDetectionClient is null",__func__);
     }
     setRemoteEnabled(is_success);
     return is_success;
 }
 
 void BasePreparedModel::setRemoteEnabled(bool flag) {
-    if (gRemoteCheck && flag) {
-        ALOGD("%s GRPC Remote Connection Busy", __func__);
-        return;
-    }
     if(mRemoteCheck != flag) {
         ALOGD("GRPC %s Remote Connection", flag ? "ACQUIRED" : "RELEASED");
-        gRemoteCheck = flag;
         mRemoteCheck = flag;
     }
 }
@@ -312,10 +304,10 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
     if (measure == MeasureTiming::YES) deviceStart = now();
     if(preparedModel->mRemoteCheck) {
         ALOGI("%s GRPC Remote Infer", __func__);
-        auto reply = gDetectionClient->remote_infer();
+        auto reply = preparedModel->mDetectionClient->remote_infer();
         ALOGI("***********GRPC server response************* %s", reply.c_str());
     }
-    if (!preparedModel->mRemoteCheck || !gDetectionClient->get_status()){
+    if (!preparedModel->mRemoteCheck || !preparedModel->mDetectionClient->get_status()){
         try {
             plugin->infer();
         } catch (const std::exception& ex) {
@@ -374,8 +366,8 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
             return;
         }
 
-        if (preparedModel->mRemoteCheck && gDetectionClient && gDetectionClient->get_status()) {
-            gDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
+        if (preparedModel->mRemoteCheck && preparedModel->mDetectionClient && preparedModel->mDetectionClient->get_status()) {
+            preparedModel->mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
                                               ngraphNw->getOutputShape(outIndex), expectedLength);
         } else {
             switch (operandType) {
@@ -469,9 +461,9 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         ALOGV("Input index: %d layername : %s", inIndex, inputNodeName.c_str());
         //check if remote infer is available
         //TODO: Need to add FLOAT16 support for remote inferencing
-        if(preparedModel->mRemoteCheck && gDetectionClient) {
+        if(preparedModel->mRemoteCheck && preparedModel->mDetectionClient) {
             auto inOperandType = modelInfo->getOperandType(inIndex);
-            gDetectionClient->add_input_data(std::to_string(i), (uint8_t*)srcPtr, ngraphNw->getOutputShape(inIndex), len, inOperandType);
+            preparedModel->mDetectionClient->add_input_data(std::to_string(i), (uint8_t*)srcPtr, ngraphNw->getOutputShape(inIndex), len, inOperandType);
         } else {
             ov::Tensor destTensor;
             try {
@@ -538,10 +530,10 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
     if (measure == MeasureTiming::YES) deviceStart = now();
     if(preparedModel->mRemoteCheck) {
         ALOGI("%s GRPC Remote Infer", __func__);
-        auto reply = gDetectionClient->remote_infer();
+        auto reply = preparedModel->mDetectionClient->remote_infer();
         ALOGI("***********GRPC server response************* %s", reply.c_str());
     }
-    if (!preparedModel->mRemoteCheck || !gDetectionClient->get_status()){
+    if (!preparedModel->mRemoteCheck || !preparedModel->mDetectionClient->get_status()){
         if(preparedModel->mRemoteCheck) {
             preparedModel->setRemoteEnabled(false);
         }
@@ -601,8 +593,8 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         }
         //copy output from remote infer
         //TODO: Add support for other OperandType
-        if (preparedModel->mRemoteCheck && gDetectionClient && gDetectionClient->get_status()) {
-            gDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
+        if (preparedModel->mRemoteCheck && preparedModel->mDetectionClient && preparedModel->mDetectionClient->get_status()) {
+            preparedModel->mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
                                               ngraphNw->getOutputShape(outIndex), expectedLength);
         } else {
             switch (operandType) {
@@ -652,8 +644,8 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         ALOGE("Failed to update the request pool infos");
         return {ErrorStatus::GENERAL_FAILURE, {}, kNoTiming};
     }
-    if (preparedModel->mRemoteCheck && gDetectionClient && gDetectionClient->get_status()) {
-        gDetectionClient->clear_data();
+    if (preparedModel->mRemoteCheck && preparedModel->mDetectionClient && preparedModel->mDetectionClient->get_status()) {
+        preparedModel->mDetectionClient->clear_data();
     }
 
     if (measure == MeasureTiming::YES) {
@@ -868,10 +860,10 @@ Return<void> BasePreparedModel::executeFenced(const V1_3::Request& request1_3,
     if (measure == MeasureTiming::YES) deviceStart = now();
     if(mRemoteCheck) {
         ALOGI("%s GRPC Remote Infer", __func__);
-        auto reply = gDetectionClient->remote_infer();
+        auto reply = mDetectionClient->remote_infer();
         ALOGI("***********GRPC server response************* %s", reply.c_str());
     }
-    if (!mRemoteCheck || !gDetectionClient->get_status()){
+    if (!mRemoteCheck || !mDetectionClient->get_status()){
         try {
             mPlugin->infer();
         } catch (const std::exception& ex) {
@@ -916,8 +908,8 @@ Return<void> BasePreparedModel::executeFenced(const V1_3::Request& request1_3,
             mModelInfo->updateOutputshapes(i, outDims);
         }
 
-        if (mRemoteCheck && gDetectionClient && gDetectionClient->get_status()) {
-            gDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
+        if (mRemoteCheck && mDetectionClient && mDetectionClient->get_status()) {
+            mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
                                               mNgraphNetCreator->getOutputShape(outIndex), expectedLength);
         } else {
             switch (operandType) {
