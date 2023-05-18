@@ -54,8 +54,8 @@ public:
     bool mRemoteCheck = false;
     BasePreparedModel(const IntelDeviceType device, const Model& model) : mTargetDevice(device) {
         mModelInfo = std::make_shared<NnapiModelInfo>(model);
-        mXmlFile = std::string("/data/vendor/neuralnetworks/") + std::to_string(mFileId) + std::string(".xml");
-        mBinFile = std::string("/data/vendor/neuralnetworks/") + std::to_string(mFileId) + std::string(".bin");
+        mXmlFile = MODEL_DIR + std::to_string(mFileId) + std::string(".xml");
+        mBinFile = MODEL_DIR + std::to_string(mFileId) + std::string(".bin");
         mFileId++;
     }
 
@@ -98,6 +98,7 @@ public:
     std::shared_ptr<IIENetwork> getPlugin() { return mPlugin; }
 
     std::shared_ptr<ov::Model> modelPtr;
+    std::shared_ptr<DetectionClient> mDetectionClient;
 
 protected:
     virtual void deinitialize();
