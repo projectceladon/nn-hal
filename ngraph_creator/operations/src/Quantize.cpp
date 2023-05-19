@@ -16,10 +16,21 @@ void Quantize::connectOperationToGraph() { createNode(); }
 std::shared_ptr<ov::Node> Quantize::createNode() {
     // Creating input nodes
     auto input = getInputNode(0);
+    ov::element::Type elementType;
     const auto& outputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
-    auto outputNode = QuantizeNode(input, outputIndex, ov::element::u8);
+    if (checkOutputOperandType(0, (int32_t)OperandType::TENSOR_QUANT8_ASYMM)) {
+        elementType = ov::element::u8;
+    } else if (checkOutputOperandType(0, (int32_t)OperandType::TENSOR_QUANT8_ASYMM_SIGNED)) {
+        elementType = ov::element::i8;
+    } else {
+        ALOGE("Invalid Output Operand Type %d",sModelInfo->getOperandType(outputIndex));
+    }
+    auto outputNode = QuantizeNode(input, outputIndex, elementType);
 
-    mNgraphNodes->setOutputAtOperandIndex(outputIndex, outputNode);
+    if (outputNode != nullptr)
+    {
+        mNgraphNodes->setOutputAtOperandIndex(outputIndex, outputNode);
+    }
 
     return nullptr;
 }

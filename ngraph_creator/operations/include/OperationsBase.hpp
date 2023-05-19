@@ -50,6 +50,8 @@ protected:
     // helper functions
     bool checkOperandType(uint32_t operandIndex, const int32_t expectedOperandType,
                           const std::string& strLogInfo = "Operand");
+    //index should be the argument index number of outputs
+    //(if there are 4 outputs and want to check type for the 1st output index will be 0)
     bool checkOutputOperandType(uint32_t index, const int32_t expectedOperandType);
     bool checkInputOperandType(uint32_t index, const int32_t expectedOperandType);
     const vec<uint32_t> getInputOperandDimensions(uint32_t inputIndex);
