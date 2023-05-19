@@ -159,8 +159,9 @@ std::shared_ptr<ov::Node> OperationsBase::QuantizeNode(std::shared_ptr<ov::Node>
     auto scale = createConstNode(floatElementType, {}, convertToVector(inputScale));
     auto zeroPoint = createConstNode(intElementType, {}, convertToVector(inputZeroPoint));
 
-    if (input->get_element_type() != ov::element::f32)
+    if (input->get_element_type() != ov::element::f32) {
         input = std::make_shared<ov::opset3::Convert>(input, floatElementType);
+    }
     auto div = std::make_shared<ov::opset3::Divide>(input, scale);
     ov::op::v5::Round::RoundMode mode = ov::op::v5::Round::RoundMode::HALF_TO_EVEN;
     auto round = std::make_shared<ov::op::v5::Round>(div, mode);
@@ -179,11 +180,11 @@ std::shared_ptr<ov::Node> OperationsBase::QuantizeNode(std::shared_ptr<ov::Node>
         data = std::make_shared<ov::opset3::Clamp>(sum, 0, 65535);
 
     std::shared_ptr<ov::Node> outputNode;
-    if (data != nullptr && data->get_element_type() != quantizeType)
+    if (data != nullptr && data->get_element_type() != quantizeType) {
         outputNode = std::make_shared<ov::opset3::Convert>(data, quantizeType);
-    else
+    } else {
         outputNode = data;
-
+    }
     return outputNode;
 }
 
@@ -221,8 +222,9 @@ std::shared_ptr<ov::Node> OperationsBase::DequantizeNode(std::shared_ptr<ov::Nod
         outputNode = mul;
     }
 
-    if (dequantizeType == ov::element::f16)
+    if (dequantizeType == ov::element::f16) {
         outputNode = std::make_shared<ov::opset3::Convert>(outputNode, dequantizeType);
+    }
 
     return outputNode;
 }
