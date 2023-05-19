@@ -418,7 +418,7 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
 }
 
 static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynchronouslyBase(
-    const Request& request, MeasureTiming measure, BasePreparedModel* preparedModel,
+    const V1_3::Request& request, MeasureTiming measure, BasePreparedModel* preparedModel,
     time_point driverStart) {
     ALOGV("Entering %s", __func__);
     auto modelInfo = preparedModel->getModelInfo();
@@ -427,7 +427,7 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
     time_point driverEnd, deviceStart, deviceEnd;
     std::vector<RunTimePoolInfo> requestPoolInfos;
     auto errorStatus = modelInfo->setRunTimePoolInfosFromHidlMemories(request.pools);
-    if (errorStatus != ErrorStatus::NONE) {
+    if (errorStatus != V1_3::ErrorStatus::NONE) {
         ALOGE("Failed to set runtime pool info from HIDL memories");
         return {ErrorStatus::GENERAL_FAILURE, {}, kNoTiming};
     }
@@ -654,7 +654,7 @@ Return<void> BasePreparedModel::executeSynchronously(const Request& request, Mea
         return Void();
     }
     auto [status, outputShapes, timing] =
-        executeSynchronouslyBase(request, measure, this, driverStart);
+        executeSynchronouslyBase(convertToV1_3(request), measure, this, driverStart);
     cb(status, std::move(outputShapes), timing);
     ALOGV("Exiting %s", __func__);
     return Void();
@@ -669,12 +669,12 @@ Return<void> BasePreparedModel::executeSynchronously_1_3(const V1_3::Request& re
     time_point driverStart;
     if (measure == MeasureTiming::YES) driverStart = now();
 
-    if (!validateRequest(convertToV1_0(request), convertToV1_2(mModelInfo->getModel()))) {
+    if (!validateRequest(request, mModelInfo->getModel())) {
         cb(V1_3::ErrorStatus::INVALID_ARGUMENT, {}, kNoTiming);
         return Void();
     }
     auto [status, outputShapes, timing] =
-        executeSynchronouslyBase(convertToV1_0(request), measure, this, driverStart);
+        executeSynchronouslyBase(request, measure, this, driverStart);
     cb(convertToV1_3(status), std::move(outputShapes), timing);
     ALOGV("Exiting %s", __func__);
     return Void();
