@@ -133,7 +133,6 @@ public:
         const auto value = GetConstOperand<T>(inputIndex);
         ALOGV("Operation input index: %d, operand index: %d", index, inputIndex);
         ALOGV("Operation: %s", toString(mModel.main.operations[operationIndex]).c_str());
-        printHelper<T>::print(value, toString(operand).c_str());
 
         return value;
     }
@@ -167,7 +166,9 @@ public:
     T GetConstFromBuffer(const uint8_t* buf, uint32_t len);
 
     void* getBlobFromMemoryPoolIn(const Request& request, uint32_t index, uint32_t& rBufferLength);
+    void* getBlobFromMemoryPoolIn(const V1_3::Request& request, uint32_t index, uint32_t& rBufferLength);
     void* getBlobFromMemoryPoolOut(const Request& request, uint32_t index, uint32_t& rBufferLength);
+    void* getBlobFromMemoryPoolOut(const V1_3::Request& request, uint32_t index, uint32_t& rBufferLength);
 
     Model getModel() { return mModel; }
 
