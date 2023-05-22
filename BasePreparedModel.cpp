@@ -20,7 +20,6 @@
 #include <android/log.h>
 #include <cutils/properties.h>
 #include <log/log.h>
-#include <thread>
 #include "ExecutionBurstServer.h"
 #include "ValidateHal.h"
 
@@ -44,8 +43,13 @@ void BasePreparedModel::deinitialize() {
     if ((ret_xml != 0) || (ret_bin != 0)) {
         ALOGW("%s Deletion status of xml:%d, bin:%d", __func__, ret_xml, ret_bin);
     }
-    auto reply = mDetectionClient->release(is_success);
-    ALOGI("GRPC release response is %d : %s", is_success, reply.c_str());
+    if (mRemoteLoadThread.joinable()) {
+        mRemoteLoadThread.join();
+    }
+    if (mRemoteCheck && mDetectionClient) {
+        auto reply = mDetectionClient->release(is_success);
+        ALOGI("GRPC release response is %d : %s", is_success, reply.c_str());
+    }
     setRemoteEnabled(false);
 
     ALOGV("Exiting %s", __func__);
@@ -65,11 +69,10 @@ bool BasePreparedModel::initialize() {
         return false;
     }
 
-    setRemoteEnabled(checkRemoteConnection());
     mNgraphNetCreator = std::make_shared<NgraphNetworkCreator>(mModelInfo, mTargetDevice);
 
     if (!mNgraphNetCreator->validateOperations()) return false;
-    ALOGI("Generating IR Graph");
+    ALOGI("Generating IR Graph for Model %u", mFileId);
     auto ov_model = mNgraphNetCreator->generateGraph();
     if (ov_model == nullptr) {
         ALOGE("%s Openvino model generation failed", __func__);
@@ -78,15 +81,14 @@ bool BasePreparedModel::initialize() {
     try {
         mPlugin = std::make_unique<IENetwork>(mTargetDevice, ov_model);
         mPlugin->loadNetwork(mXmlFile, mBinFile);
-        if(mRemoteCheck) {
-                auto resp = loadRemoteModel(mXmlFile, mBinFile);
-                ALOGD("%s Load Remote Model returns %d", __func__, resp);
-            } else {
-                ALOGD("%s Remote connection unavailable", __func__);
-            }
     } catch (const std::exception& ex) {
         ALOGE("%s Exception !!! %s", __func__, ex.what());
         return false;
+    }
+    {
+        mRemoteLoadThread = std::thread([this] {
+            loadRemoteModel(mXmlFile, mBinFile);
+            });
     }
 
     ALOGV("Exiting %s", __func__);
@@ -115,30 +117,27 @@ bool BasePreparedModel::checkRemoteConnection() {
         args.SetMaxSendMessageSize(INT_MAX);
         mDetectionClient = std::make_shared<DetectionClient>(
             grpc::CreateCustomChannel(std::string("unix:") + grpc_prop, grpc::InsecureChannelCredentials(), args), mFileId);
-        if(mDetectionClient) {
+        if (mDetectionClient) {
             auto reply = mDetectionClient->prepare(is_success);
             ALOGI("GRPC(unix) prepare response is %d : %s", is_success, reply.c_str());
+        } else {
+            ALOGE("%s mDetectionClient is null", __func__);
         }
     }
-    setRemoteEnabled(is_success);
     return is_success;
 }
 
-bool BasePreparedModel::loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin) {
-    ALOGI("Entering %s", __func__);
+void BasePreparedModel::loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin) {
+    ALOGI("Entering %s for Model %u", __func__, mFileId);
     bool is_success = false;
-    if(mDetectionClient) {
+    if(checkRemoteConnection() && mDetectionClient) {
         auto reply = mDetectionClient->sendIRs(is_success, ir_xml, ir_bin);
         ALOGI("sendIRs response GRPC %d  %s", is_success, reply.c_str());
         if (reply == "status False") {
             ALOGE("%s Model Load Failed",__func__);
         }
+        setRemoteEnabled(is_success);
     }
-    else {
-        ALOGE("%s mDetectionClient is null",__func__);
-    }
-    setRemoteEnabled(is_success);
-    return is_success;
 }
 
 void BasePreparedModel::setRemoteEnabled(bool flag) {
@@ -287,12 +286,6 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
     ALOGD("%s Run", __func__);
 
     if (measure == MeasureTiming::YES) deviceStart = now();
-    if(preparedModel->mRemoteCheck) {
-        ALOGI("%s GRPC Remote Infer", __func__);
-        auto reply = preparedModel->mDetectionClient->remote_infer();
-        ALOGI("***********GRPC server response************* %s", reply.c_str());
-    }
-    if (!preparedModel->mRemoteCheck || !preparedModel->mDetectionClient->get_status()){
         try {
             plugin->infer();
         } catch (const std::exception& ex) {
@@ -300,7 +293,6 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
             notify(callback, ErrorStatus::GENERAL_FAILURE, {}, kNoTiming);
             return;
         }
-    }
     if (measure == MeasureTiming::YES) deviceEnd = now();
 
     tensorIndex = 0;
@@ -351,10 +343,7 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
             return;
         }
 
-        if (preparedModel->mRemoteCheck && preparedModel->mDetectionClient && preparedModel->mDetectionClient->get_status()) {
-            preparedModel->mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
-                                              ngraphNw->getOutputShape(outIndex), expectedLength);
-        } else {
+        {
             switch (operandType) {
                 case OperandType::TENSOR_INT32:
                     std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int32_t>(),
@@ -843,12 +832,6 @@ Return<void> BasePreparedModel::executeFenced(const V1_3::Request& request1_3,
 
     time_point deviceStart, deviceEnd;
     if (measure == MeasureTiming::YES) deviceStart = now();
-    if(mRemoteCheck) {
-        ALOGI("%s GRPC Remote Infer", __func__);
-        auto reply = mDetectionClient->remote_infer();
-        ALOGI("***********GRPC server response************* %s", reply.c_str());
-    }
-    if (!mRemoteCheck || !mDetectionClient->get_status()){
         try {
             mPlugin->infer();
         } catch (const std::exception& ex) {
@@ -856,7 +839,6 @@ Return<void> BasePreparedModel::executeFenced(const V1_3::Request& request1_3,
             cb(V1_3::ErrorStatus::GENERAL_FAILURE, hidl_handle(nullptr), nullptr);
             return Void();
         }
-    }
     if (measure == MeasureTiming::YES) deviceEnd = now();
 
     tensorIndex = 0;
@@ -893,10 +875,7 @@ Return<void> BasePreparedModel::executeFenced(const V1_3::Request& request1_3,
             mModelInfo->updateOutputshapes(i, outDims);
         }
 
-        if (mRemoteCheck && mDetectionClient && mDetectionClient->get_status()) {
-            mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
-                                              mNgraphNetCreator->getOutputShape(outIndex), expectedLength);
-        } else {
+        {
             switch (operandType) {
                 case OperandType::TENSOR_INT32:
                     std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int32_t>(),

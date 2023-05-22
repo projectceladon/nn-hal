@@ -28,6 +28,7 @@
 #include <sys/mman.h>
 #include <fstream>
 #include <string>
+#include <thread>
 
 #include <NgraphNetworkCreator.hpp>
 #include <openvino/pass/serialize.hpp>
@@ -88,7 +89,7 @@ public:
 
     virtual bool initialize();
     virtual bool checkRemoteConnection();
-    virtual bool loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin);
+    virtual void loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin);
     virtual void setRemoteEnabled(bool flag);
 
     std::shared_ptr<NnapiModelInfo> getModelInfo() { return mModelInfo; }
@@ -111,6 +112,7 @@ private:
     static uint32_t mFileId;
     std::string mXmlFile;
     std::string mBinFile;
+    std::thread mRemoteLoadThread;
 };
 
 class BaseFencedExecutionCallback : public V1_3::IFencedExecutionCallback {
