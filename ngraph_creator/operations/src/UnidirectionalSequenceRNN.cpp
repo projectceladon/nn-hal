@@ -9,9 +9,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-UnidirectionalSequenceRNN::UnidirectionalSequenceRNN(int operationIndex)
-    : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+UnidirectionalSequenceRNN::UnidirectionalSequenceRNN(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 void UnidirectionalSequenceRNN::connectOperationToGraph() { createNode(); }
@@ -26,8 +25,8 @@ std::shared_ptr<ov::Node> UnidirectionalSequenceRNN::createNode() {
     bias = getInputNode(3);
     initial_hidden_state = getInputNode(4);
 
-    auto activationFn = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
-    auto isTimeMajor = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 6);
+    auto activationFn = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
+    auto isTimeMajor = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 6);
 
     if (!isTimeMajor) {
         inputNode = transpose(BTS_TBS, inputNode);
@@ -84,14 +83,14 @@ std::shared_ptr<ov::Node> UnidirectionalSequenceRNN::createNode() {
         outputNode = transpose(BTS_TBS, outputNode);
     }
 
-    const auto& outputsSize = sModelInfo->getOperationOutputsSize(mNnapiOperationIndex);
+    const auto& outputsSize = mOpModelInfo->getOperationOutputsSize(mNnapiOperationIndex);
 
-    auto outputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+    auto outputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
     mNgraphNodes->setOutputAtOperandIndex(outputIndex, outputNode);
     ALOGD("%s Set Output index %d", __func__, outputIndex);
 
     if (outputsSize == 2) {
-        auto hiddenStateIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 1);
+        auto hiddenStateIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 1);
         mNgraphNodes->setOutputAtOperandIndex(hiddenStateIndex, hidden_state_output_last_timestep);
         ALOGD("%s Set Output index %d", __func__, hiddenStateIndex);
     }

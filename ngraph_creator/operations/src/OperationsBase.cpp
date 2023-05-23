@@ -7,9 +7,6 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-IntelDeviceType OperationsBase::sPluginType;
-std::shared_ptr<NnapiModelInfo> OperationsBase::sModelInfo;
-
 std::shared_ptr<ov::Node> OperationsBase::transpose(ConversionType type,
                                                     ov::Output<ov::Node> input) {
     ov::AxisVector order;
@@ -62,13 +59,13 @@ std::shared_ptr<ov::Node> OperationsBase::transpose(ConversionType type,
     return std::make_shared<ov::opset3::Transpose>(input, order_node);
 }
 
-// override createNodeForPlugin in case sPluginType specific implementation is required
+// override createNodeForPlugin in case mPluginType specific implementation is required
 std::shared_ptr<ov::Node> OperationsBase::createNodeForPlugin() { return createNode(); }
 
 // override connectOperationToGraph in case Operation has multiple outputs
 void OperationsBase::connectOperationToGraph() {
     auto outputNode = createNodeForPlugin();
-    const auto op = sModelInfo->getOperand(mDefaultOutputIndex);
+    const auto op = mOpModelInfo->getOperand(mDefaultOutputIndex);
     if (op.type == OperandType::TENSOR_QUANT8_ASYMM) {
         outputNode = QuantizeNode(outputNode, mDefaultOutputIndex, ov::element::u8);
     }
@@ -96,8 +93,10 @@ void OperationsBase::addResultNode(size_t index, std::shared_ptr<ov::Node> resul
     mNgraphNodes->setResultNode(index, resultNode);
 }
 
-OperationsBase::OperationsBase(int operationIndex) : mNnapiOperationIndex(operationIndex) {
+OperationsBase::OperationsBase(int operationIndex, GraphMetadata graphMetadata) : mNnapiOperationIndex(operationIndex) {
     mDefaultOutputIndex = 0;
+    mOpModelInfo = graphMetadata.modelInfo;
+    mPluginType = graphMetadata.pluginType;
 }
 
 void OperationsBase::setNgraphNodes(std::shared_ptr<NgraphNodes> nodes) { mNgraphNodes = nodes; }
@@ -111,7 +110,7 @@ bool OperationsBase::validateForPlugin() {
 
 bool OperationsBase::checkOperandType(uint32_t operandIndex, const int32_t expectedOperandType,
                                       const std::string& strLogInfo) {
-    const auto operandType = (int32_t)sModelInfo->getOperandType(operandIndex);
+    const auto operandType = (int32_t)mOpModelInfo->getOperandType(operandIndex);
     if (operandType != expectedOperandType) {
         ALOGV("OperationIndex %d %s Index %d type %d invalid", mNnapiOperationIndex,
               strLogInfo.c_str(), operandIndex, operandType);
@@ -122,16 +121,16 @@ bool OperationsBase::checkOperandType(uint32_t operandIndex, const int32_t expec
     return true;
 }
 bool OperationsBase::checkOutputOperandType(uint32_t index, const int32_t expectedOperandType) {
-    const auto& operandIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, index);
+    const auto& operandIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, index);
     return checkOperandType(operandIndex, expectedOperandType, "Output");
 }
 bool OperationsBase::checkInputOperandType(uint32_t index, const int32_t expectedOperandType) {
-    const auto& operandIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, index);
+    const auto& operandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, index);
     return checkOperandType(operandIndex, expectedOperandType, "Input");
 }
 const vec<uint32_t> OperationsBase::getInputOperandDimensions(uint32_t inputIndex) {
-    const auto& operandIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, inputIndex);
-    const auto& operand = sModelInfo->getOperand(operandIndex);
+    const auto& operandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, inputIndex);
+    const auto& operand = mOpModelInfo->getOperand(operandIndex);
     return operand.dimensions;
 }
 
@@ -153,8 +152,8 @@ std::shared_ptr<ov::Node> OperationsBase::QuantizeNode(std::shared_ptr<ov::Node>
     auto floatElementType = ov::element::f32;
     auto intElementType = ov::element::i32;
 
-    float inputScale = sModelInfo->getOperandScale(index);
-    int inputZeroPoint = sModelInfo->getOperandZeroPoint(index);
+    float inputScale = mOpModelInfo->getOperandScale(index);
+    int inputZeroPoint = mOpModelInfo->getOperandZeroPoint(index);
 
     auto scale = createConstNode(floatElementType, {}, convertToVector(inputScale));
     auto zeroPoint = createConstNode(intElementType, {}, convertToVector(inputZeroPoint));
@@ -168,7 +167,7 @@ std::shared_ptr<ov::Node> OperationsBase::QuantizeNode(std::shared_ptr<ov::Node>
     auto convertRound = std::make_shared<ov::opset3::Convert>(round, ov::element::i32);
     auto sum = std::make_shared<ov::opset3::Add>(convertRound, zeroPoint);
     std::shared_ptr<ov::Node> data;
-    const auto operand = sModelInfo->getOperand(index);
+    const auto operand = mOpModelInfo->getOperand(index);
     if (operand.type == OperandType::TENSOR_QUANT8_ASYMM)
         data = std::make_shared<ov::opset3::Clamp>(sum, 0, 255);
     else if (operand.type == OperandType::TENSOR_QUANT8_SYMM ||
@@ -191,7 +190,7 @@ std::shared_ptr<ov::Node> OperationsBase::QuantizeNode(std::shared_ptr<ov::Node>
 std::shared_ptr<ov::Node> OperationsBase::DequantizeNode(std::shared_ptr<ov::Node> input,
                                                          uint32_t index,
                                                          ov::element::Type dequantizeType) {
-    const auto operand = sModelInfo->getOperand(index);
+    const auto operand = mOpModelInfo->getOperand(index);
     std::shared_ptr<ov::Node> outputNode;
 
     if (input->get_element_type() != ov::element::f32)
@@ -209,9 +208,9 @@ std::shared_ptr<ov::Node> OperationsBase::DequantizeNode(std::shared_ptr<ov::Nod
         outputNode = std::make_shared<ov::opset3::Multiply>(input, scaleNode);
     } else {
         auto scaleNode = createConstNode(ov::element::f32, {},
-                                         convertToVector(sModelInfo->getOperandScale(index)));
+                                         convertToVector(mOpModelInfo->getOperandScale(index)));
         auto zeroPointNode = createConstNode(
-            ov::element::f32, {}, convertToVector(sModelInfo->getOperandZeroPoint(index)));
+            ov::element::f32, {}, convertToVector(mOpModelInfo->getOperandZeroPoint(index)));
 
         if (operand.type == OperandType::TENSOR_QUANT8_ASYMM ||
             operand.type == OperandType::TENSOR_QUANT16_ASYMM ||

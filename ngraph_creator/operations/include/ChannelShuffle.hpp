@@ -9,7 +9,7 @@ namespace nnhal {
 
 class ChannelShuffle : public OperationsBase {
 public:
-    ChannelShuffle(int operationIndex);
+    ChannelShuffle(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

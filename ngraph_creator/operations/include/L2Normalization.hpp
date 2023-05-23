@@ -9,7 +9,7 @@ namespace nnhal {
 
 class L2Normalization : public OperationsBase {
 public:
-    L2Normalization(int operationIndex);
+    L2Normalization(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

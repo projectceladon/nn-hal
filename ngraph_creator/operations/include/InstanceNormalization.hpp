@@ -9,7 +9,7 @@ namespace nnhal {
 
 class InstanceNormalization : public OperationsBase {
 public:
-    InstanceNormalization(int operationIndex);
+    InstanceNormalization(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Greater : public OperationsBase {
 public:
-    Greater(int operationIndex);
+    Greater(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

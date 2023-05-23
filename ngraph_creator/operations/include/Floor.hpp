@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Floor : public OperationsBase {
 public:
-    Floor(int operationIndex);
+    Floor(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

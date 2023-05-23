@@ -7,8 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-Split::Split(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+Split::Split(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 void Split::connectOperationToGraph() { createNode(); }
@@ -19,15 +19,15 @@ std::shared_ptr<ov::Node> Split::createNode() {
 
     splitNode = getInputNode(0, false);
 
-    auto axis = sModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 1);
+    auto axis = mOpModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 1);
     auto axisNode = createConstNode(ov::element::i32, {}, convertToVector(axis));
-    auto numSplits = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 2);
+    auto numSplits = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 2);
 
     auto outputNode =
         std::make_shared<ov::opset3::Split>(splitNode, axisNode, numSplits)->outputs();
 
     for (size_t i = 0; i < numSplits; i++) {
-        auto outputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, i);
+        auto outputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, i);
         // TODO: remove this dummy convert
         std::shared_ptr<ov::Node> outNode;
         if (checkInputOperandType(0, (int32_t)OperandType::TENSOR_FLOAT32)) {

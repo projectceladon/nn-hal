@@ -9,7 +9,7 @@ namespace nnhal {
 
 class DepthwiseConv2d : public OperationsBase {
 public:
-    DepthwiseConv2d(int operationIndex);
+    DepthwiseConv2d(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

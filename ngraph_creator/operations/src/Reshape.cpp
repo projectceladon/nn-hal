@@ -7,13 +7,13 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-Reshape::Reshape(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+Reshape::Reshape(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 bool Reshape::validate() {
-    const auto& dimsOperandIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 1);
-    if (!sModelInfo->isOperandLifeTimeConst(dimsOperandIndex) || !isValidInputTensor(1)) {
+    const auto& dimsOperandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 1);
+    if (!mOpModelInfo->isOperandLifeTimeConst(dimsOperandIndex) || !isValidInputTensor(1)) {
         // TODO: Support CPU_reshape_all_tensors_as_inputs
         ALOGE("%s Only Constant non-zero dimensions supported now", __func__);
         return false;
@@ -23,8 +23,8 @@ bool Reshape::validate() {
 }
 
 std::shared_ptr<ov::Node> Reshape::createNode() {
-    const auto& dimsOperandIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 1);
-    auto outDims = sModelInfo->GetConstVecOperand<int32_t>(dimsOperandIndex);
+    const auto& dimsOperandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 1);
+    auto outDims = mOpModelInfo->GetConstVecOperand<int32_t>(dimsOperandIndex);
     VLOGDIMS(L3, outDims, "Reshape::createNode dims");
     std::shared_ptr<ov::Node> inputOp;
     inputOp = getInputNode(0);
