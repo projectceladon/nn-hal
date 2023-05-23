@@ -8,7 +8,7 @@ std::string DetectionClient::prepare(bool& flag) {
     request.mutable_token()->set_data(mToken);
     ReplyStatus reply;
     ClientContext context;
-    time_point deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(100);
+    time_point deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(10000);
     context.set_deadline(deadline);
 
     Status status = stub_->prepare(&context, request, &reply);
