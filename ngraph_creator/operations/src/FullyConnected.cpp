@@ -7,8 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-FullyConnected::FullyConnected(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+FullyConnected::FullyConnected(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 // Supports only FP32 input. Will add support for QUANT8 through decompose node
@@ -49,13 +49,13 @@ std::shared_ptr<ov::Node> FullyConnected::createNode() {
         multiplyNode = std::make_shared<ov::opset3::MatMul>(inputNode, weightsNode, false, true);
     }
 
-    if (!sModelInfo->isOmittedInput(mNnapiOperationIndex, 2) && biasDims.size() != 0) {
+    if (!mOpModelInfo->isOmittedInput(mNnapiOperationIndex, 2) && biasDims.size() != 0) {
         biasNode = getInputNode(2);
 
         if (checkInputOperandType(0, (int32_t)OperandType::TENSOR_QUANT8_ASYMM) ||
             checkInputOperandType(0, (int32_t)OperandType::TENSOR_QUANT8_ASYMM_SIGNED))
             biasNode = DequantizeNode(
-                biasNode, sModelInfo->getOperationInput(mNnapiOperationIndex, 2), ov::element::f32);
+                biasNode, mOpModelInfo->getOperationInput(mNnapiOperationIndex, 2), ov::element::f32);
 
         addNode = std::make_shared<ov::opset3::Add>(multiplyNode, biasNode,
                                                     ov::op::AutoBroadcastType::NUMPY);
@@ -64,7 +64,7 @@ std::shared_ptr<ov::Node> FullyConnected::createNode() {
         addNode = multiplyNode;
     }
 
-    auto activationFn = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 3);
+    auto activationFn = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 3);
     activationNode = applyActivation(addNode, activationFn);
     return activationNode ? activationNode : addNode;
 }

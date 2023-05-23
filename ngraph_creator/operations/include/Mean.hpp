@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Mean : public OperationsBase {
 public:
-    Mean(int operationIndex);
+    Mean(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

@@ -9,7 +9,7 @@ namespace nnhal {
 
 class LogicalNot : public OperationsBase {
 public:
-    LogicalNot(int operationIndex);
+    LogicalNot(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

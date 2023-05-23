@@ -9,8 +9,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-TransposeConv2D::TransposeConv2D(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+TransposeConv2D::TransposeConv2D(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 bool TransposeConv2D::validate() {
@@ -28,8 +28,8 @@ bool TransposeConv2D::validate() {
     }
 
     if (checkInputOperandType(1, (int32_t)OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL)) {
-        const auto& operandIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 1);
-        const auto& operand = sModelInfo->getOperand(operandIndex);
+        const auto& operandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 1);
+        const auto& operand = mOpModelInfo->getOperand(operandIndex);
         if (operand.extraParams.channelQuant().channelDim != 0) {
             return false;
         }
@@ -48,7 +48,7 @@ bool TransposeConv2D::validate() {
 std::shared_ptr<ov::Node> TransposeConv2D::createNode() {
     std::shared_ptr<ov::Node> inputNode;
     inputNode = getInputNode(0);
-    const auto& inputsSize = sModelInfo->getOperationInputsSize(mNnapiOperationIndex);
+    const auto& inputsSize = mOpModelInfo->getOperationInputsSize(mNnapiOperationIndex);
     ALOGD("%s inputsSize %lu", __func__, inputsSize);
 
     bool isImplicit = false, isExplicit = false;
@@ -89,16 +89,16 @@ std::shared_ptr<ov::Node> TransposeConv2D::createNode() {
     }
 
     if (isExplicit) {
-        padding_left = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 3);
-        padding_right = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 4);
-        padding_top = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
-        padding_bottom = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 6);
+        padding_left = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 3);
+        padding_right = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 4);
+        padding_top = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
+        padding_bottom = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 6);
 
-        stride_width = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 7);
-        stride_height = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 8);
+        stride_width = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 7);
+        stride_height = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 8);
 
-        activationFn = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 9);
-        layout = sModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 10);
+        activationFn = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 9);
+        layout = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 10);
 
         if (layout) useNchw = true;
 
@@ -116,19 +116,19 @@ std::shared_ptr<ov::Node> TransposeConv2D::createNode() {
 
     if (isImplicit) {
         const auto& outputShapeOperandIndex =
-            sModelInfo->getOperationInput(mNnapiOperationIndex, 3);
+            mOpModelInfo->getOperationInput(mNnapiOperationIndex, 3);
 
-        auto outputShape = sModelInfo->GetConstVecOperand<int32_t>(outputShapeOperandIndex);
+        auto outputShape = mOpModelInfo->GetConstVecOperand<int32_t>(outputShapeOperandIndex);
         size_t spatial_dimensions_size = 2;
         std::vector<int32_t> spatial_dimensions(spatial_dimensions_size);
 
-        padding_scheme = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 4);
+        padding_scheme = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 4);
 
-        stride_width = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
-        stride_height = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 6);
+        stride_width = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
+        stride_height = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 6);
 
-        activationFn = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 7);
-        layout = sModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 8);
+        activationFn = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 7);
+        layout = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 8);
 
         if (layout) useNchw = true;
 
@@ -158,16 +158,16 @@ std::shared_ptr<ov::Node> TransposeConv2D::createNode() {
     }
 
     std::shared_ptr<ov::Node> filterNode, biasNode;
-    const auto& biasIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 2);
+    const auto& biasIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 2);
 
     filterNode = getInputNode(1);
     biasNode = getInputNode(2);
 
     if (checkInputOperandType(1, (int32_t)OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL)) {
-        auto filterIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 1);
-        const auto& filterOperand = sModelInfo->getOperand(filterIndex);
+        auto filterIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 1);
+        const auto& filterOperand = mOpModelInfo->getOperand(filterIndex);
         vec<float> filterScales = filterOperand.extraParams.channelQuant().scales;
-        float inputScale = sModelInfo->getOperandScale(0);
+        float inputScale = mOpModelInfo->getOperandScale(0);
         auto filterScalesNode =
             createConstNode(ov::element::f32, ov::Shape{filterScales.size()}, filterScales);
         auto inputScalesNode =

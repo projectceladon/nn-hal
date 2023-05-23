@@ -7,8 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-InstanceNormalization::InstanceNormalization(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+InstanceNormalization::InstanceNormalization(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 bool InstanceNormalization::validate() {
@@ -39,15 +39,15 @@ std::shared_ptr<ov::Node> InstanceNormalization::createNode() {
 
     std::shared_ptr<ov::Node> inputNode;
     bool useNchw = false;
-    const auto& inputsSize = sModelInfo->getOperationInputsSize(mNnapiOperationIndex);
+    const auto& inputsSize = mOpModelInfo->getOperationInputsSize(mNnapiOperationIndex);
     ALOGD("%s inputsSize %lu", __func__, inputsSize);
 
     // Read inputs
     inputNode = getInputNode(0);
-    auto gamma = sModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 1);
-    auto beta = sModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 2);
-    auto epsilon = sModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 3);
-    auto layout = sModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 4);
+    auto gamma = mOpModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 1);
+    auto beta = mOpModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 2);
+    auto epsilon = mOpModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 3);
+    auto layout = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 4);
     if (layout) useNchw = true;
 
     if (!useNchw)  // No conversion needed if useNchw set

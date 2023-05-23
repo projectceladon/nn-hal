@@ -8,8 +8,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-GroupedConv2d::GroupedConv2d(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+GroupedConv2d::GroupedConv2d(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 bool GroupedConv2d::validate() {
@@ -23,8 +23,8 @@ bool GroupedConv2d::validate() {
     }
 
     if (checkInputOperandType(1, (int32_t)OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL)) {
-        const auto& operandIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 1);
-        const auto& operand = sModelInfo->getOperand(operandIndex);
+        const auto& operandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 1);
+        const auto& operand = mOpModelInfo->getOperand(operandIndex);
         if (operand.extraParams.channelQuant().channelDim != 0) {
             return false;
         }
@@ -37,7 +37,7 @@ bool GroupedConv2d::validate() {
 std::shared_ptr<ov::Node> GroupedConv2d::createNode() {
     std::shared_ptr<ov::Node> inputNode;
     inputNode = getInputNode(0);
-    const auto& inputsSize = sModelInfo->getOperationInputsSize(mNnapiOperationIndex);
+    const auto& inputsSize = mOpModelInfo->getOperationInputsSize(mNnapiOperationIndex);
     bool isImplicit = false, isExplicit = false;
 
     if (inputsSize >= 11 && inputsSize <= 12 &&
@@ -76,20 +76,20 @@ std::shared_ptr<ov::Node> GroupedConv2d::createNode() {
     }
 
     if (isExplicit) {
-        padding_left = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 3);
-        padding_right = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 4);
-        padding_top = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
-        padding_bottom = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 6);
+        padding_left = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 3);
+        padding_right = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 4);
+        padding_top = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
+        padding_bottom = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 6);
 
-        stride_width = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 7);
-        stride_height = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 8);
+        stride_width = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 7);
+        stride_height = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 8);
 
-        number_groups = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 9);
+        number_groups = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 9);
 
-        activationFn = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 10);
+        activationFn = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 10);
 
         if (inputsSize == 12)
-            layout = sModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 11);
+            layout = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 11);
 
         if (layout) useNchw = true;
 
@@ -97,17 +97,17 @@ std::shared_ptr<ov::Node> GroupedConv2d::createNode() {
     }
 
     if (isImplicit) {
-        padding_scheme = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 3);
+        padding_scheme = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 3);
 
-        stride_width = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 4);
-        stride_height = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
+        stride_width = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 4);
+        stride_height = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
 
-        number_groups = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 6);
+        number_groups = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 6);
 
-        activationFn = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 7);
+        activationFn = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 7);
 
         if (inputsSize == 9)
-            layout = sModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 8);
+            layout = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 8);
 
         if (layout) useNchw = true;
 
@@ -137,16 +137,16 @@ std::shared_ptr<ov::Node> GroupedConv2d::createNode() {
     }
 
     std::shared_ptr<ov::Node> filterNode, biasNode;
-    const auto& biasIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 2);
+    const auto& biasIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 2);
 
     filterNode = getInputNode(1);
     biasNode = getInputNode(2);
 
     if (checkInputOperandType(1, (int32_t)OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL)) {
-        auto filterIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 1);
-        const auto& filterOperand = sModelInfo->getOperand(filterIndex);
+        auto filterIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 1);
+        const auto& filterOperand = mOpModelInfo->getOperand(filterIndex);
         vec<float> filterScales = filterOperand.extraParams.channelQuant().scales;
-        float inputScale = sModelInfo->getOperandScale(0);
+        float inputScale = mOpModelInfo->getOperandScale(0);
         auto filterScalesNode =
             createConstNode(ov::element::f32, ov::Shape{filterScales.size()}, filterScales);
         auto inputScalesNode =

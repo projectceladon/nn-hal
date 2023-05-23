@@ -19,6 +19,11 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
+struct GraphMetadata {
+    std::shared_ptr<NnapiModelInfo> modelInfo;
+    IntelDeviceType pluginType;
+};
+
 class OperationsBase {
 protected:
     enum ConversionType {
@@ -43,13 +48,15 @@ protected:
     int mNnapiOperationIndex;
     std::shared_ptr<ov::Node> transpose(ConversionType type, ov::Output<ov::Node> input);
     virtual std::shared_ptr<ov::Node> createNode() = 0;
-    // override createNodeForPlugin in case sPluginType specific implementation is required
+    // override createNodeForPlugin in case mPluginType specific implementation is required
     virtual std::shared_ptr<ov::Node> createNodeForPlugin();
     void addResultNode(size_t index, std::shared_ptr<ov::Node> resultNode);
 
     // helper functions
     bool checkOperandType(uint32_t operandIndex, const int32_t expectedOperandType,
                           const std::string& strLogInfo = "Operand");
+    //index should be the argument index number of outputs
+    //(if there are 4 outputs and want to check type for the 1st output index will be 0)
     bool checkOutputOperandType(uint32_t index, const int32_t expectedOperandType);
     bool checkInputOperandType(uint32_t index, const int32_t expectedOperandType);
     const vec<uint32_t> getInputOperandDimensions(uint32_t inputIndex);
@@ -57,33 +64,33 @@ protected:
 
     std::shared_ptr<ov::Node> getInputNode(uint32_t inputIndex, bool dequantize = true) {
         std::shared_ptr<ov::Node> input;
-        auto operandIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, inputIndex);
-        auto operandType = sModelInfo->getOperandType(operandIndex);
-        if (sModelInfo->isOperandLifeTimeConst(operandIndex)) {
+        auto operandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, inputIndex);
+        auto operandType = mOpModelInfo->getOperandType(operandIndex);
+        if (mOpModelInfo->isOperandLifeTimeConst(operandIndex)) {
             auto operandDims = getInputOperandDimensions(inputIndex);
             ov::element::Type elementType;
             switch (operandType) {
                 case OperandType::TENSOR_FLOAT32: {
                     elementType = ov::element::f32;
-                    auto operandValues = sModelInfo->GetConstVecOperand<float>(operandIndex);
+                    auto operandValues = mOpModelInfo->GetConstVecOperand<float>(operandIndex);
                     input = createConstNode(elementType, toNgraphShape(operandDims), operandValues);
                     break;
                 }
                 case OperandType::TENSOR_INT32: {
                     elementType = ov::element::i32;
-                    auto operandValues = sModelInfo->GetConstVecOperand<int>(operandIndex);
+                    auto operandValues = mOpModelInfo->GetConstVecOperand<int>(operandIndex);
                     input = createConstNode(elementType, toNgraphShape(operandDims), operandValues);
                     break;
                 }
                 case OperandType::TENSOR_BOOL8: {
                     elementType = ov::element::boolean;
-                    auto operandValues = sModelInfo->GetConstVecOperand<uint8_t>(operandIndex);
+                    auto operandValues = mOpModelInfo->GetConstVecOperand<uint8_t>(operandIndex);
                     input = createConstNode(elementType, toNgraphShape(operandDims), operandValues);
                     break;
                 }
                 case OperandType::TENSOR_QUANT8_ASYMM: {
                     elementType = ov::element::u8;
-                    auto operandValues = sModelInfo->GetConstVecOperand<uint8_t>(operandIndex);
+                    auto operandValues = mOpModelInfo->GetConstVecOperand<uint8_t>(operandIndex);
                     input = createConstNode(elementType, toNgraphShape(operandDims), operandValues);
                     break;
                 }
@@ -91,25 +98,25 @@ protected:
                 case OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL:
                 case OperandType::TENSOR_QUANT8_ASYMM_SIGNED: {
                     elementType = ov::element::i8;
-                    auto operandValues = sModelInfo->GetConstVecOperand<int8_t>(operandIndex);
+                    auto operandValues = mOpModelInfo->GetConstVecOperand<int8_t>(operandIndex);
                     input = createConstNode(elementType, toNgraphShape(operandDims), operandValues);
                     break;
                 }
                 case OperandType::TENSOR_FLOAT16: {
                     elementType = ov::element::f16;
-                    auto operandValues = sModelInfo->GetConstVecOperand<_Float16>(operandIndex);
+                    auto operandValues = mOpModelInfo->GetConstVecOperand<_Float16>(operandIndex);
                     input = createConstNode(elementType, toNgraphShape(operandDims), operandValues);
                     break;
                 }
                 case OperandType::TENSOR_QUANT16_SYMM: {
                     elementType = ov::element::i16;
-                    auto operandValues = sModelInfo->GetConstVecOperand<int16_t>(operandIndex);
+                    auto operandValues = mOpModelInfo->GetConstVecOperand<int16_t>(operandIndex);
                     input = createConstNode(elementType, toNgraphShape(operandDims), operandValues);
                     break;
                 }
                 case OperandType::TENSOR_QUANT16_ASYMM: {
                     elementType = ov::element::u16;
-                    auto operandValues = sModelInfo->GetConstVecOperand<uint16_t>(operandIndex);
+                    auto operandValues = mOpModelInfo->GetConstVecOperand<uint16_t>(operandIndex);
                     input = createConstNode(elementType, toNgraphShape(operandDims), operandValues);
                     break;
                 }
@@ -139,7 +146,7 @@ protected:
     }
     // remove null input node parameter
     void removeInputNode(uint32_t inputIndex) {
-        auto operandIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, inputIndex);
+        auto operandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, inputIndex);
         auto nodeName = mNgraphNodes->getNodeName(operandIndex);
         mNgraphNodes->removeInputParameter(nodeName, operandIndex);
     }
@@ -164,18 +171,18 @@ protected:
                                              ov::element::Type dequantizeType);
 
     const Operand& getInputOperand(uint32_t index) {
-        auto inputIdx = sModelInfo->getOperationInput(mNnapiOperationIndex, index);
-        return sModelInfo->getOperand(inputIdx);
+        auto inputIdx = mOpModelInfo->getOperationInput(mNnapiOperationIndex, index);
+        return mOpModelInfo->getOperand(inputIdx);
     }
 
     const Operand& getOutputOperand(uint32_t index) {
-        auto outputIdx = sModelInfo->getOperationOutput(mNnapiOperationIndex, index);
-        return sModelInfo->getOperand(outputIdx);
+        auto outputIdx = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, index);
+        return mOpModelInfo->getOperand(outputIdx);
     }
 
     bool isZeroSizedInput(uint32_t index) {
-        auto inputIdx = sModelInfo->getOperationInput(mNnapiOperationIndex, index);
-        auto operand = sModelInfo->getOperand(inputIdx);
+        auto inputIdx = mOpModelInfo->getOperationInput(mNnapiOperationIndex, index);
+        auto operand = mOpModelInfo->getOperand(inputIdx);
         auto& dims = operand.dimensions;
 
         if ((dims.size() > 0) && (dims[0] != 0)) return false;
@@ -184,14 +191,14 @@ protected:
     }
 
 public:
-    static std::shared_ptr<NnapiModelInfo> sModelInfo;
-    static IntelDeviceType sPluginType;
+    std::shared_ptr<NnapiModelInfo> mOpModelInfo;
+    IntelDeviceType mPluginType;
     std::shared_ptr<NgraphNodes> mNgraphNodes;
-    OperationsBase(int operationIndex);
+    OperationsBase(int operationIndex, GraphMetadata graphMetadata = {});
     void setNgraphNodes(std::shared_ptr<NgraphNodes> nodes);
     bool transposed = false;
     virtual bool validate();
-    // override validateForPlugin in case sPluginType specific implementation is required
+    // override validateForPlugin in case mPluginType specific implementation is required
     virtual bool validateForPlugin();
     // override connectOperationToGraph in case Operation has multiple outputs
     virtual void connectOperationToGraph();

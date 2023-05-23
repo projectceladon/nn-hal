@@ -9,7 +9,7 @@ namespace nnhal {
 
 class BatchToSpace : public OperationsBase {
 public:
-    BatchToSpace(int operationIndex);
+    BatchToSpace(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

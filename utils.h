@@ -96,12 +96,12 @@ enum PaddingScheme {
 #define dumpOperand(index, model)                               \
     do {                                                        \
         const auto op = model.operands[index];                  \
-        ALOGV("Operand (%zu) %s", index, toString(op).c_str()); \
+        ALOGD("Operand (%zu) %s", index, toString(op).c_str()); \
     } while (0)
 
 #define dumpOperation(operation)                             \
     do {                                                     \
-        ALOGV("Operation: %s", toString(operation).c_str()); \
+        ALOGD("Operation: %s", toString(operation).c_str()); \
     } while (0)
 
 #define WRONG_DIM (-1)

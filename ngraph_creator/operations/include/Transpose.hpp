@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Transpose : public OperationsBase {
 public:
-    Transpose(int operationIndex);
+    Transpose(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

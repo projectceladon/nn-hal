@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Abs : public OperationsBase {
 public:
-    Abs(int operationIndex);
+    Abs(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

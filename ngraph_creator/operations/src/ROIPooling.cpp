@@ -7,8 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-ROIPooling::ROIPooling(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+ROIPooling::ROIPooling(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 bool ROIPooling::validate() {
@@ -32,8 +32,8 @@ bool ROIPooling::validate() {
 
     // TODO: support for different height_ratio and width_ratio
     // values
-    auto height_ratio = sModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 5);
-    auto width_ratio = sModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 6);
+    auto height_ratio = mOpModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 5);
+    auto width_ratio = mOpModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 6);
     if (height_ratio != width_ratio) {
         ALOGE(
             "%s: Ratio of Height and Ratio of Width from orginal image to feature map must be same "
@@ -53,14 +53,14 @@ std::shared_ptr<ov::Node> ROIPooling::createNode() {
 
     // Read inputs
     auto feat_maps = getInputNode(0);  // 4D tensor
-    auto output_height = sModelInfo->ParseOperationInput<int32_t>(
+    auto output_height = mOpModelInfo->ParseOperationInput<int32_t>(
         mNnapiOperationIndex, 3);  // height of the output tensor
-    auto output_width = sModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex,
+    auto output_width = mOpModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex,
                                                                  4);  // width of the output tensor
-    auto height_ratio = sModelInfo->ParseOperationInput<float>(
+    auto height_ratio = mOpModelInfo->ParseOperationInput<float>(
         mNnapiOperationIndex,
         5);  // ratio from the height of original image to the height of feature map.
-    auto layout = sModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 7);
+    auto layout = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 7);
 
     if (layout) useNchw = true;
 
@@ -75,13 +75,13 @@ std::shared_ptr<ov::Node> ROIPooling::createNode() {
     std::vector<ov::Output<ov::Node>> inputs;
     auto axis = 1;
     // add bi node to inputs for concat
-    const auto& biOperandIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 2);
-    auto bi_vec = sModelInfo->GetConstVecOperand<int32_t>(biOperandIndex);
+    const auto& biOperandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 2);
+    auto bi_vec = mOpModelInfo->GetConstVecOperand<int32_t>(biOperandIndex);
     const auto bi_node =
         createConstNode(ov::element::f32, ov::Shape{bi_vec.size(), 1}, bi_vec);
     inputs.push_back(bi_node);
     // add rois node to inputs for concat
-    auto inputIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 1);
+    auto inputIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 1);
     auto inputOp = mNgraphNodes->getOperationOutput(inputIndex);
     inputs.push_back(inputOp);
 

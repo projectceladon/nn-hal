@@ -9,7 +9,7 @@ namespace nnhal {
 
 class AveragePool2D : public OperationsBase {
 public:
-    AveragePool2D(int operationIndex);
+    AveragePool2D(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

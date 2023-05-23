@@ -28,6 +28,7 @@
 #include <sys/mman.h>
 #include <fstream>
 #include <string>
+#include <thread>
 
 #include <NgraphNetworkCreator.hpp>
 #include <openvino/pass/serialize.hpp>
@@ -49,14 +50,13 @@ namespace android::hardware::neuralnetworks::nnhal {
 template <class T>
 using vec = std::vector<T>;
 typedef uint8_t* memory;
-extern bool mRemoteCheck;
-extern std::shared_ptr<DetectionClient> mDetectionClient;
 class BasePreparedModel : public V1_3::IPreparedModel {
 public:
+    bool mRemoteCheck = false;
     BasePreparedModel(const IntelDeviceType device, const Model& model) : mTargetDevice(device) {
         mModelInfo = std::make_shared<NnapiModelInfo>(model);
-        mXmlFile = std::string("/data/vendor/neuralnetworks/") + std::to_string(mFileId) + std::string(".xml");
-        mBinFile = std::string("/data/vendor/neuralnetworks/") + std::to_string(mFileId) + std::string(".bin");
+        mXmlFile = MODEL_DIR + std::to_string(mFileId) + std::string(".xml");
+        mBinFile = MODEL_DIR + std::to_string(mFileId) + std::string(".bin");
         mFileId++;
     }
 
@@ -89,7 +89,8 @@ public:
 
     virtual bool initialize();
     virtual bool checkRemoteConnection();
-    virtual bool loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin);
+    virtual void loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin);
+    virtual void setRemoteEnabled(bool flag);
 
     std::shared_ptr<NnapiModelInfo> getModelInfo() { return mModelInfo; }
 
@@ -98,6 +99,7 @@ public:
     std::shared_ptr<IIENetwork> getPlugin() { return mPlugin; }
 
     std::shared_ptr<ov::Model> modelPtr;
+    std::shared_ptr<DetectionClient> mDetectionClient;
 
 protected:
     virtual void deinitialize();
@@ -110,6 +112,7 @@ private:
     static uint32_t mFileId;
     std::string mXmlFile;
     std::string mBinFile;
+    std::thread mRemoteLoadThread;
 };
 
 class BaseFencedExecutionCallback : public V1_3::IFencedExecutionCallback {

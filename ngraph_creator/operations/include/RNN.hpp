@@ -9,7 +9,7 @@ namespace nnhal {
 
 class RNN : public OperationsBase {
 public:
-    RNN(int operationIndex);
+    RNN(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
     void connectOperationToGraph() override;
 };

@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Sin : public OperationsBase {
 public:
-    Sin(int operationIndex);
+    Sin(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

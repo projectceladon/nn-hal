@@ -7,8 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-AveragePool2D::AveragePool2D(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+AveragePool2D::AveragePool2D(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 bool AveragePool2D::validate() {
@@ -26,7 +26,7 @@ bool AveragePool2D::validate() {
 std::shared_ptr<ov::Node> AveragePool2D::createNode() {
     std::shared_ptr<ov::Node> inputNode;
     const auto& inDims = getInputOperandDimensions(0);
-    const auto& inputsSize = sModelInfo->getOperationInputsSize(mNnapiOperationIndex);
+    const auto& inputsSize = mOpModelInfo->getOperationInputsSize(mNnapiOperationIndex);
 
     inputNode = getInputNode(0);
 
@@ -59,21 +59,21 @@ std::shared_ptr<ov::Node> AveragePool2D::createNode() {
     }
 
     if (isExplicit) {
-        padding_left = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 1);
-        padding_right = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 2);
-        padding_top = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 3);
-        padding_bottom = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 4);
+        padding_left = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 1);
+        padding_right = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 2);
+        padding_top = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 3);
+        padding_bottom = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 4);
 
-        stride_width = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
-        stride_height = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 6);
+        stride_width = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
+        stride_height = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 6);
 
-        filter_width = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 7);
-        filter_height = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 8);
+        filter_width = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 7);
+        filter_height = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 8);
 
-        activationFn = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 9);
+        activationFn = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 9);
 
         if (inputsSize == 11) {
-            layout = sModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 10);
+            layout = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 10);
         }
 
         if (layout) useNchw = true;
@@ -82,18 +82,18 @@ std::shared_ptr<ov::Node> AveragePool2D::createNode() {
     }
 
     if (isImplicit) {
-        padding_scheme = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 1);
+        padding_scheme = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 1);
 
-        stride_width = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 2);
-        stride_height = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 3);
+        stride_width = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 2);
+        stride_height = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 3);
 
-        filter_width = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 4);
-        filter_height = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
+        filter_width = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 4);
+        filter_height = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
 
-        activationFn = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 6);
+        activationFn = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 6);
 
         if (inputsSize == 8) {
-            layout = sModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 7);
+            layout = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 7);
         }
 
         if (layout) useNchw = true;

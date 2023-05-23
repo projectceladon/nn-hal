@@ -9,7 +9,7 @@ namespace nnhal {
 
 class LogSoftmax : public OperationsBase {
 public:
-    LogSoftmax(int operationIndex);
+    LogSoftmax(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

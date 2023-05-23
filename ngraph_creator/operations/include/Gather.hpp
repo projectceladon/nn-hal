@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Gather : public OperationsBase {
 public:
-    Gather(int operationIndex);
+    Gather(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

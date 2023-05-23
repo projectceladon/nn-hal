@@ -7,8 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-ChannelShuffle::ChannelShuffle(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+ChannelShuffle::ChannelShuffle(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 bool ChannelShuffle::validate() {
@@ -20,7 +20,7 @@ bool ChannelShuffle::validate() {
     }
 
     // Check axis range
-    int64_t axis = sModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 2);
+    int64_t axis = mOpModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 2);
     if (!(axis >= -inputRank && axis < inputRank)) {
         ALOGE("%s Axis %ld not in the range [-inputRank, inputRank)", __func__, axis);
         return false;
@@ -32,8 +32,8 @@ bool ChannelShuffle::validate() {
 std::shared_ptr<ov::Node> ChannelShuffle::createNode() {
     // Creating input nodes
     auto inputNode = getInputNode(0);
-    int64_t group = sModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 1);
-    int64_t axis = sModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 2);
+    int64_t group = mOpModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 1);
+    int64_t axis = mOpModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 2);
 
     auto inputRank = getInputOperandDimensions(0).size();
     axis = (axis >= 0) ? axis : (axis + inputRank);
