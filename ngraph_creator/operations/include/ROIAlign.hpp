@@ -9,7 +9,7 @@ namespace nnhal {
 
 class ROIAlign : public OperationsBase {
 public:
-    ROIAlign(int operationIndex);
+    ROIAlign(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

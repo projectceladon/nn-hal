@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Select : public OperationsBase {
 public:
-    Select(int operationIndex);
+    Select(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

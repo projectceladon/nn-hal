@@ -7,8 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-ROIAlign::ROIAlign(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+ROIAlign::ROIAlign(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 bool ROIAlign::validate() {
@@ -36,8 +36,8 @@ bool ROIAlign::validate() {
 
     // TODO: support for different height_ratio and width_ratio
     // values
-    auto height_ratio = sModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 5);
-    auto width_ratio = sModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 6);
+    auto height_ratio = mOpModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 5);
+    auto width_ratio = mOpModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 6);
     if (height_ratio != width_ratio) {
         ALOGE(
             "%s: Ratio of Height and Ratio of Width from orginal image to feature map must be same "
@@ -59,19 +59,19 @@ std::shared_ptr<ov::Node> ROIAlign::createNode() {
     auto feat_maps = getInputNode(0);      // 4D tensor
     auto rois = getInputNode(1);           // 2D tensor
     auto batch_indices = getInputNode(2);  // 1D tensor
-    auto output_height = sModelInfo->ParseOperationInput<int32_t>(
+    auto output_height = mOpModelInfo->ParseOperationInput<int32_t>(
         mNnapiOperationIndex, 3);  // height of the output tensor
-    auto output_width = sModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex,
+    auto output_width = mOpModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex,
                                                                  4);  // width of the output tensor
-    auto height_ratio = sModelInfo->ParseOperationInput<float>(
+    auto height_ratio = mOpModelInfo->ParseOperationInput<float>(
         mNnapiOperationIndex,
         5);  // ratio from the height of original image to the height of feature map.
-    // auto width_ratio = sModelInfo->ParseOperationInput<float>(
+    // auto width_ratio = mOpModelInfo->ParseOperationInput<float>(
     //     mNnapiOperationIndex,
     //     6);  // ratio from the width of original image to the height of feature map.
-    auto sampling_pts_h = sModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex, 7);
-    // auto sampling_pts_w = sModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex, 8);
-    auto layout = sModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 9);
+    auto sampling_pts_h = mOpModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex, 7);
+    // auto sampling_pts_w = mOpModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex, 8);
+    auto layout = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 9);
 
     if (layout) useNchw = true;
 

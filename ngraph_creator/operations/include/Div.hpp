@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Div : public OperationsBase {
 public:
-    Div(int operationIndex);
+    Div(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

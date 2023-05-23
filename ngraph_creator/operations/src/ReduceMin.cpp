@@ -7,8 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-ReduceMin::ReduceMin(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+ReduceMin::ReduceMin(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 std::shared_ptr<ov::Node> ReduceMin::createNode() {
@@ -18,7 +18,7 @@ std::shared_ptr<ov::Node> ReduceMin::createNode() {
     input = getInputNode(0);
 
     auto reduction_axes = getInputNode(1);
-    auto keep_dims = sModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 2);
+    auto keep_dims = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 2);
 
     std::shared_ptr<ov::Node> outputNode;
     outputNode = std::make_shared<ov::opset3::ReduceMin>(input, reduction_axes, keep_dims);

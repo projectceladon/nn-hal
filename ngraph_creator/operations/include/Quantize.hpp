@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Quantize : public OperationsBase {
 public:
-    Quantize(int operationIndex);
+    Quantize(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
     void connectOperationToGraph() override;
 };

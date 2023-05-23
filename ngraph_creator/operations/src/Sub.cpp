@@ -7,8 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-Sub::Sub(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+Sub::Sub(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 std::shared_ptr<ov::Node> Sub::createNode() {
@@ -18,7 +18,7 @@ std::shared_ptr<ov::Node> Sub::createNode() {
     input1 = getInputNode(0);
     input2 = getInputNode(1);
 
-    auto activationFn = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 2);
+    auto activationFn = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 2);
 
     auto subNode =
         std::make_shared<ov::opset3::Subtract>(input1, input2, ov::op::AutoBroadcastType::NUMPY);

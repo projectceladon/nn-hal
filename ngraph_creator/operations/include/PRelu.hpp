@@ -9,7 +9,7 @@ namespace nnhal {
 
 class PRelu : public OperationsBase {
 public:
-    PRelu(int operationIndex);
+    PRelu(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

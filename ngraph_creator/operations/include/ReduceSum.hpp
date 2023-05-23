@@ -9,7 +9,7 @@ namespace nnhal {
 
 class ReduceSum : public OperationsBase {
 public:
-    ReduceSum(int operationIndex);
+    ReduceSum(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 
