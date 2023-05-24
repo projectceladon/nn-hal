@@ -67,6 +67,8 @@ std::shared_ptr<OperationsBase> OperationsFactory::getOperation(
             return std::make_shared<GreaterEqual>(operationIndex, mGraphMetadata);
         case OperationType::GROUPED_CONV_2D:
             return std::make_shared<GroupedConv2d>(operationIndex, mGraphMetadata);
+        case OperationType::HARD_SWISH:
+            return std::make_shared<HardSwish>(operationIndex, mGraphMetadata);
         case OperationType::INSTANCE_NORMALIZATION:
             return std::make_shared<InstanceNormalization>(operationIndex, mGraphMetadata);
         case OperationType::L2_POOL_2D:
