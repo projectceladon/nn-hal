@@ -190,7 +190,7 @@ void DetectionClient::clear_data() {
 
 std::string DetectionClient::remote_infer() {
     ClientContext context;
-    time_point deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(5000);
+    time_point deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(10000);
     context.set_deadline(deadline);
 
     request.mutable_token()->set_data(mToken);

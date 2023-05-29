@@ -86,9 +86,11 @@ bool BasePreparedModel::initialize() {
         auto& nnapiOperandType = mModelInfo->getOperand(i).type;
         switch (nnapiOperandType) {
             case OperandType::FLOAT32:
+            case OperandType::FLOAT16:
             case OperandType::TENSOR_FLOAT32:
             case OperandType::TENSOR_FLOAT16:
             case OperandType::TENSOR_INT32:
+            case OperandType::INT32:
                 break;
             default :
                 ALOGD("GRPC Remote Infer not enabled for %d", nnapiOperandType);
@@ -410,6 +412,11 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
     } else {
         returned = notify(callback, ErrorStatus::NONE, modelInfo->getOutputShapes(), kNoTiming);
     }
+
+    if (!modelInfo->unmapRuntimeMemPools()) {
+        ALOGE("Failed to unmap the request pool infos");
+    }
+
     if (!returned.isOk()) {
         ALOGE("hidl callback failed to return properly: %s", returned.description().c_str());
     }
@@ -639,6 +646,9 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         return {ErrorStatus::NONE, modelInfo->getOutputShapes(), timing};
     }
     ALOGV("Exiting %s", __func__);
+    if (!modelInfo->unmapRuntimeMemPools()) {
+        ALOGE("Failed to unmap the request pool infos");
+    }
     return {ErrorStatus::NONE, modelInfo->getOutputShapes(), kNoTiming};
 }
 
