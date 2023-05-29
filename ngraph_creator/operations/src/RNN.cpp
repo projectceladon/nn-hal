@@ -9,8 +9,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-RNN::RNN(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+RNN::RNN(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 void RNN::connectOperationToGraph() { createNode(); }
@@ -25,7 +25,7 @@ std::shared_ptr<ov::Node> RNN::createNode() {
     bias = getInputNode(3);
     initial_hidden_state = getInputNode(4);
 
-    auto activationFn = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
+    auto activationFn = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
 
     // inputs * input_weights
     auto input_W = std::make_shared<ov::opset3::MatMul>(input, W, false, true);
@@ -39,7 +39,7 @@ std::shared_ptr<ov::Node> RNN::createNode() {
     auto outputNode = applyActivation(i_t, activationFn);
 
     for (int i = 0; i < 2; i++) {
-        auto outputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, i);
+        auto outputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, i);
         std::shared_ptr<ov::Node> outNode;
         if (i == 1) {
             outNode = outputNode;

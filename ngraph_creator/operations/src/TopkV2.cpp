@@ -7,8 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-TopkV2::TopkV2(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+TopkV2::TopkV2(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 void TopkV2::connectOperationToGraph() { createNode(); }
@@ -19,7 +19,7 @@ std::shared_ptr<ov::Node> TopkV2::createNode() {
 
     input = getInputNode(0);
 
-    auto k = sModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 1);
+    auto k = mOpModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 1);
     int axis = -1;  // to find largest entries for the last dimension.
 
     auto k_node = createConstNode(ov::element::i32, {}, convertToVector(k));
@@ -29,7 +29,7 @@ std::shared_ptr<ov::Node> TopkV2::createNode() {
     auto outputNode = topk->outputs();
 
     for (int i = 0; i < 2; i++) {
-        auto outputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, i);
+        auto outputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, i);
         // TODO: remove this dummy convert
         std::shared_ptr<ov::Node> outNode;
         if (checkOutputOperandType(i, (int32_t)OperandType::TENSOR_FLOAT32)) {
@@ -48,7 +48,7 @@ std::shared_ptr<ov::Node> TopkV2::createNode() {
 
         mNgraphNodes->setOutputAtOperandIndex(outputIndex, outNode);
         ALOGD("%s Set Output index %d", __func__, outputIndex);
-        const auto op = sModelInfo->getOperand(outputIndex);
+        const auto op = mOpModelInfo->getOperand(outputIndex);
     }
     return nullptr;
 }

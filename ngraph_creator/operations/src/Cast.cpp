@@ -7,8 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-Cast::Cast(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+Cast::Cast(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 void Cast::connectOperationToGraph() { createNode(); }
@@ -19,11 +19,11 @@ std::shared_ptr<ov::Node> Cast::createNode() {
 
     input = getInputNode(0, false);
 
-    auto inputIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 0);
-    auto outputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+    auto inputIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 0);
+    auto outputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 
-    const auto& inputType = sModelInfo->getOperandType(inputIndex);
-    const auto& outputType = sModelInfo->getOperandType(outputIndex);
+    const auto& inputType = mOpModelInfo->getOperandType(inputIndex);
+    const auto& outputType = mOpModelInfo->getOperandType(outputIndex);
 
     ov::element::Type elementType;  // change to outputbased element type
     std::shared_ptr<ov::Node> outputNode;

@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Concat : public OperationsBase {
 public:
-    Concat(int operationIndex);
+    Concat(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Equal : public OperationsBase {
 public:
-    Equal(int operationIndex);
+    Equal(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

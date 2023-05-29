@@ -33,19 +33,22 @@ namespace android::hardware::neuralnetworks::nnhal {
 using namespace android::nn;
 
 static const Timing kNoTiming = {.timeOnDevice = UINT64_MAX, .timeInDriver = UINT64_MAX};
-bool mRemoteCheck = false;
-std::shared_ptr<DetectionClient> mDetectionClient;
 uint32_t BasePreparedModel::mFileId = 0;
 
 void BasePreparedModel::deinitialize() {
     ALOGV("Entering %s", __func__);
+    bool is_success = false;
     mModelInfo->unmapRuntimeMemPools();
     auto ret_xml = std::remove(mXmlFile.c_str());
     auto ret_bin = std::remove(mBinFile.c_str());
     if ((ret_xml != 0) || (ret_bin != 0)) {
         ALOGW("%s Deletion status of xml:%d, bin:%d", __func__, ret_xml, ret_bin);
     }
-
+    if (mRemoteCheck && mDetectionClient) {
+        auto reply = mDetectionClient->release(is_success);
+        ALOGI("GRPC release response is %d : %s", is_success, reply.c_str());
+        setRemoteEnabled(false);
+    }
     ALOGV("Exiting %s", __func__);
 }
 
@@ -62,11 +65,10 @@ bool BasePreparedModel::initialize() {
         ALOGE("Failed to initialize Model runtime parameters!!");
         return false;
     }
-    checkRemoteConnection();
     mNgraphNetCreator = std::make_shared<NgraphNetworkCreator>(mModelInfo, mTargetDevice);
 
     if (!mNgraphNetCreator->validateOperations()) return false;
-    ALOGI("Generating IR Graph");
+    ALOGI("Generating IR Graph for Model %u", mFileId);
     auto ov_model = mNgraphNetCreator->generateGraph();
     if (ov_model == nullptr) {
         ALOGE("%s Openvino model generation failed", __func__);
@@ -75,17 +77,31 @@ bool BasePreparedModel::initialize() {
     try {
         mPlugin = std::make_unique<IENetwork>(mTargetDevice, ov_model);
         mPlugin->loadNetwork(mXmlFile, mBinFile);
-        if(mRemoteCheck) {
-                auto resp = loadRemoteModel(mXmlFile, mBinFile);
-                ALOGD("%s Load Remote Model returns %d", __func__, resp);
-            } else {
-                ALOGD("%s Remote connection unavailable", __func__);
-            }
     } catch (const std::exception& ex) {
         ALOGE("%s Exception !!! %s", __func__, ex.what());
         return false;
     }
-
+    bool disableOffload = false;
+    for (auto i : mModelInfo->getModelInputIndexes()) {
+        auto& nnapiOperandType = mModelInfo->getOperand(i).type;
+        switch (nnapiOperandType) {
+            case OperandType::FLOAT32:
+            case OperandType::FLOAT16:
+            case OperandType::TENSOR_FLOAT32:
+            case OperandType::TENSOR_FLOAT16:
+            case OperandType::TENSOR_INT32:
+            case OperandType::INT32:
+                break;
+            default :
+                ALOGD("GRPC Remote Infer not enabled for %d", nnapiOperandType);
+                disableOffload = true;
+                break;
+        }
+        if (disableOffload) break;
+    }
+    if (!disableOffload) {
+        loadRemoteModel(mXmlFile, mBinFile);
+    }
     ALOGV("Exiting %s", __func__);
     return true;
 }
@@ -95,38 +111,53 @@ bool BasePreparedModel::checkRemoteConnection() {
     bool is_success = false;
     if(getGrpcIpPort(grpc_prop)) {
         ALOGV("Attempting GRPC via TCP : %s", grpc_prop);
+        grpc::ChannelArguments args;
+        args.SetMaxReceiveMessageSize(INT_MAX);
+        args.SetMaxSendMessageSize(INT_MAX);
         mDetectionClient = std::make_shared<DetectionClient>(
-            grpc::CreateChannel(grpc_prop, grpc::InsecureChannelCredentials()));
-        if(mDetectionClient) {
+            grpc::CreateCustomChannel(grpc_prop, grpc::InsecureChannelCredentials(), args), mFileId);
+        if (mDetectionClient) {
             auto reply = mDetectionClient->prepare(is_success);
             ALOGI("GRPC(TCP) prepare response is %d : %s", is_success, reply.c_str());
+        } else {
+            ALOGE("%s mDetectionClient is null", __func__);
         }
     }
     if (!is_success && getGrpcSocketPath(grpc_prop)) {
         ALOGV("Attempting GRPC via unix : %s", grpc_prop);
+        grpc::ChannelArguments args;
+        args.SetMaxReceiveMessageSize(INT_MAX);
+        args.SetMaxSendMessageSize(INT_MAX);
         mDetectionClient = std::make_shared<DetectionClient>(
-            grpc::CreateChannel(std::string("unix:") + grpc_prop, grpc::InsecureChannelCredentials()));
-        if(mDetectionClient) {
+            grpc::CreateCustomChannel(std::string("unix:") + grpc_prop, grpc::InsecureChannelCredentials(), args), mFileId);
+        if (mDetectionClient) {
             auto reply = mDetectionClient->prepare(is_success);
             ALOGI("GRPC(unix) prepare response is %d : %s", is_success, reply.c_str());
+        } else {
+            ALOGE("%s mDetectionClient is null", __func__);
         }
     }
-    mRemoteCheck = is_success;
     return is_success;
 }
 
-bool BasePreparedModel::loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin) {
-    ALOGI("Entering %s", __func__);
+void BasePreparedModel::loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin) {
+     ALOGI("Entering %s for Model %u", __func__, mFileId);
     bool is_success = false;
-    if(mDetectionClient) {
+    if(checkRemoteConnection() && mDetectionClient) {
         auto reply = mDetectionClient->sendIRs(is_success, ir_xml, ir_bin);
         ALOGI("sendIRs response GRPC %d  %s", is_success, reply.c_str());
+        if (reply == "status False") {
+            ALOGE("%s Model Load Failed",__func__);
+        }
+        setRemoteEnabled(is_success);
     }
-    else {
-        ALOGE("%s mDetectionClient is null",__func__);
+}
+
+void BasePreparedModel::setRemoteEnabled(bool flag) {
+    if(mRemoteCheck != flag) {
+        ALOGD("GRPC %s Remote Connection", flag ? "ACQUIRED" : "RELEASED");
+        mRemoteCheck = flag;
     }
-    mRemoteCheck = is_success;
-    return is_success;
 }
 
 static Return<void> notify(const sp<V1_0::IExecutionCallback>& callback, const ErrorStatus& status,
@@ -268,20 +299,14 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
     ALOGD("%s Run", __func__);
 
     if (measure == MeasureTiming::YES) deviceStart = now();
-    if(mRemoteCheck) {
-        ALOGI("%s GRPC Remote Infer", __func__);
-        auto reply = mDetectionClient->remote_infer();
-        ALOGI("***********GRPC server response************* %s", reply.c_str());
+    try {
+        plugin->infer();
+    } catch (const std::exception& ex) {
+        ALOGE("%s Exception !!! %s", __func__, ex.what());
+        notify(callback, ErrorStatus::GENERAL_FAILURE, {}, kNoTiming);
+        return;
     }
-    if (!mRemoteCheck || !mDetectionClient->get_status()){
-        try {
-            plugin->infer();
-        } catch (const std::exception& ex) {
-            ALOGE("%s Exception !!! %s", __func__, ex.what());
-            notify(callback, ErrorStatus::GENERAL_FAILURE, {}, kNoTiming);
-            return;
-        }
-    }
+
     if (measure == MeasureTiming::YES) deviceEnd = now();
 
     tensorIndex = 0;
@@ -332,50 +357,45 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
             return;
         }
 
-        if (mRemoteCheck && mDetectionClient && mDetectionClient->get_status()) {
-            mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
-                                              ngraphNw->getOutputShape(outIndex));
-        } else {
-            switch (operandType) {
-                case OperandType::TENSOR_INT32:
-                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int32_t>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_FLOAT32:
-                    std::memcpy((uint8_t*)destPtr, srcTensor.data<float>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_BOOL8:
-                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<bool>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_QUANT8_ASYMM:
-                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint8_t>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_QUANT8_SYMM:
-                case OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL:
-                case OperandType::TENSOR_QUANT8_ASYMM_SIGNED:
-                    std::memcpy((int8_t*)destPtr, (int8_t*)srcTensor.data<int8_t>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_FLOAT16:
-                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<ov::float16>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_QUANT16_SYMM:
-                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int16_t>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_QUANT16_ASYMM:
-                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint16_t>(),
-                                srcTensor.get_byte_size());
-                    break;
-                default:
-                    std::memcpy((uint8_t*)destPtr, srcTensor.data<uint8_t>(),
-                                srcTensor.get_byte_size());
-                    break;
-            }
+        switch (operandType) {
+            case OperandType::TENSOR_INT32:
+                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int32_t>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_FLOAT32:
+                std::memcpy((uint8_t*)destPtr, srcTensor.data<float>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_BOOL8:
+                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<bool>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_QUANT8_ASYMM:
+                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint8_t>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_QUANT8_SYMM:
+            case OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL:
+            case OperandType::TENSOR_QUANT8_ASYMM_SIGNED:
+                std::memcpy((int8_t*)destPtr, (int8_t*)srcTensor.data<int8_t>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_FLOAT16:
+                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<ov::float16>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_QUANT16_SYMM:
+                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int16_t>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_QUANT16_ASYMM:
+                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint16_t>(),
+                            srcTensor.get_byte_size());
+                break;
+            default:
+                std::memcpy((uint8_t*)destPtr, srcTensor.data<uint8_t>(),
+                            srcTensor.get_byte_size());
+                break;
         }
     }
 
@@ -392,6 +412,11 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
     } else {
         returned = notify(callback, ErrorStatus::NONE, modelInfo->getOutputShapes(), kNoTiming);
     }
+
+    if (!modelInfo->unmapRuntimeMemPools()) {
+        ALOGE("Failed to unmap the request pool infos");
+    }
+
     if (!returned.isOk()) {
         ALOGE("hidl callback failed to return properly: %s", returned.description().c_str());
     }
@@ -399,7 +424,7 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
 }
 
 static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynchronouslyBase(
-    const Request& request, MeasureTiming measure, BasePreparedModel* preparedModel,
+    const V1_3::Request& request, MeasureTiming measure, BasePreparedModel* preparedModel,
     time_point driverStart) {
     ALOGV("Entering %s", __func__);
     auto modelInfo = preparedModel->getModelInfo();
@@ -408,7 +433,7 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
     time_point driverEnd, deviceStart, deviceEnd;
     std::vector<RunTimePoolInfo> requestPoolInfos;
     auto errorStatus = modelInfo->setRunTimePoolInfosFromHidlMemories(request.pools);
-    if (errorStatus != ErrorStatus::NONE) {
+    if (errorStatus != V1_3::ErrorStatus::NONE) {
         ALOGE("Failed to set runtime pool info from HIDL memories");
         return {ErrorStatus::GENERAL_FAILURE, {}, kNoTiming};
     }
@@ -427,8 +452,9 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         ALOGV("Input index: %d layername : %s", inIndex, inputNodeName.c_str());
         //check if remote infer is available
         //TODO: Need to add FLOAT16 support for remote inferencing
-        if(mRemoteCheck && mDetectionClient) {
-            mDetectionClient->add_input_data(std::to_string(i), (uint8_t*)srcPtr, ngraphNw->getOutputShape(inIndex), len);
+        if(preparedModel->mRemoteCheck && preparedModel->mDetectionClient) {
+            auto inOperandType = modelInfo->getOperandType(inIndex);
+            preparedModel->mDetectionClient->add_input_data(std::to_string(i), (uint8_t*)srcPtr, ngraphNw->getOutputShape(inIndex), len, inOperandType);
         } else {
             ov::Tensor destTensor;
             try {
@@ -493,12 +519,15 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
     ALOGV("%s Run", __func__);
 
     if (measure == MeasureTiming::YES) deviceStart = now();
-    if(mRemoteCheck) {
+    if(preparedModel->mRemoteCheck) {
         ALOGI("%s GRPC Remote Infer", __func__);
-        auto reply = mDetectionClient->remote_infer();
+        auto reply = preparedModel->mDetectionClient->remote_infer();
         ALOGI("***********GRPC server response************* %s", reply.c_str());
     }
-    if (!mRemoteCheck || !mDetectionClient->get_status()){
+    if (!preparedModel->mRemoteCheck || !preparedModel->mDetectionClient->get_status()){
+        if(preparedModel->mRemoteCheck) {
+            preparedModel->setRemoteEnabled(false);
+        }
         try {
             ALOGV("%s Client Infer", __func__);
             plugin->infer();
@@ -555,9 +584,9 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         }
         //copy output from remote infer
         //TODO: Add support for other OperandType
-        if (mRemoteCheck && mDetectionClient && mDetectionClient->get_status()) {
-            mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
-                                              ngraphNw->getOutputShape(outIndex));
+        if (preparedModel->mRemoteCheck && preparedModel->mDetectionClient && preparedModel->mDetectionClient->get_status()) {
+            preparedModel->mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
+                                              ngraphNw->getOutputShape(outIndex), expectedLength);
         } else {
             switch (operandType) {
                 case OperandType::TENSOR_INT32:
@@ -606,8 +635,8 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         ALOGE("Failed to update the request pool infos");
         return {ErrorStatus::GENERAL_FAILURE, {}, kNoTiming};
     }
-    if (mRemoteCheck && mDetectionClient && mDetectionClient->get_status()) {
-        mDetectionClient->clear_data();
+    if (preparedModel->mRemoteCheck && preparedModel->mDetectionClient && preparedModel->mDetectionClient->get_status()) {
+        preparedModel->mDetectionClient->clear_data();
     }
 
     if (measure == MeasureTiming::YES) {
@@ -617,6 +646,9 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         return {ErrorStatus::NONE, modelInfo->getOutputShapes(), timing};
     }
     ALOGV("Exiting %s", __func__);
+    if (!modelInfo->unmapRuntimeMemPools()) {
+        ALOGE("Failed to unmap the request pool infos");
+    }
     return {ErrorStatus::NONE, modelInfo->getOutputShapes(), kNoTiming};
 }
 
@@ -631,7 +663,7 @@ Return<void> BasePreparedModel::executeSynchronously(const Request& request, Mea
         return Void();
     }
     auto [status, outputShapes, timing] =
-        executeSynchronouslyBase(request, measure, this, driverStart);
+        executeSynchronouslyBase(convertToV1_3(request), measure, this, driverStart);
     cb(status, std::move(outputShapes), timing);
     ALOGV("Exiting %s", __func__);
     return Void();
@@ -646,12 +678,12 @@ Return<void> BasePreparedModel::executeSynchronously_1_3(const V1_3::Request& re
     time_point driverStart;
     if (measure == MeasureTiming::YES) driverStart = now();
 
-    if (!validateRequest(convertToV1_0(request), convertToV1_2(mModelInfo->getModel()))) {
+    if (!validateRequest(request, mModelInfo->getModel())) {
         cb(V1_3::ErrorStatus::INVALID_ARGUMENT, {}, kNoTiming);
         return Void();
     }
     auto [status, outputShapes, timing] =
-        executeSynchronouslyBase(convertToV1_0(request), measure, this, driverStart);
+        executeSynchronouslyBase(request, measure, this, driverStart);
     cb(convertToV1_3(status), std::move(outputShapes), timing);
     ALOGV("Exiting %s", __func__);
     return Void();
@@ -820,19 +852,12 @@ Return<void> BasePreparedModel::executeFenced(const V1_3::Request& request1_3,
 
     time_point deviceStart, deviceEnd;
     if (measure == MeasureTiming::YES) deviceStart = now();
-    if(mRemoteCheck) {
-        ALOGI("%s GRPC Remote Infer", __func__);
-        auto reply = mDetectionClient->remote_infer();
-        ALOGI("***********GRPC server response************* %s", reply.c_str());
-    }
-    if (!mRemoteCheck || !mDetectionClient->get_status()){
-        try {
-            mPlugin->infer();
-        } catch (const std::exception& ex) {
-            ALOGE("%s Exception !!! %s", __func__, ex.what());
-            cb(V1_3::ErrorStatus::GENERAL_FAILURE, hidl_handle(nullptr), nullptr);
-            return Void();
-        }
+    try {
+        mPlugin->infer();
+    } catch (const std::exception& ex) {
+        ALOGE("%s Exception !!! %s", __func__, ex.what());
+        cb(V1_3::ErrorStatus::GENERAL_FAILURE, hidl_handle(nullptr), nullptr);
+        return Void();
     }
     if (measure == MeasureTiming::YES) deviceEnd = now();
 
@@ -870,50 +895,45 @@ Return<void> BasePreparedModel::executeFenced(const V1_3::Request& request1_3,
             mModelInfo->updateOutputshapes(i, outDims);
         }
 
-        if (mRemoteCheck && mDetectionClient && mDetectionClient->get_status()) {
-            mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
-                                              mNgraphNetCreator->getOutputShape(outIndex));
-        } else {
-            switch (operandType) {
-                case OperandType::TENSOR_INT32:
-                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int32_t>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_FLOAT32:
-                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<float>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_BOOL8:
-                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<bool>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_QUANT8_ASYMM:
-                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint8_t>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_QUANT8_SYMM:
-                case OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL:
-                case OperandType::TENSOR_QUANT8_ASYMM_SIGNED:
-                    std::memcpy((int8_t*)destPtr, (int8_t*)srcTensor.data<int8_t>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_FLOAT16:
-                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<ov::float16>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_QUANT16_SYMM:
-                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int16_t>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_QUANT16_ASYMM:
-                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint16_t>(),
-                                srcTensor.get_byte_size());
-                    break;
-                default:
-                    std::memcpy((uint8_t*)destPtr, srcTensor.data<uint8_t>(),
-                                srcTensor.get_byte_size());
-                    break;
-            }
+        switch (operandType) {
+            case OperandType::TENSOR_INT32:
+                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int32_t>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_FLOAT32:
+                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<float>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_BOOL8:
+                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<bool>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_QUANT8_ASYMM:
+                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint8_t>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_QUANT8_SYMM:
+            case OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL:
+            case OperandType::TENSOR_QUANT8_ASYMM_SIGNED:
+                std::memcpy((int8_t*)destPtr, (int8_t*)srcTensor.data<int8_t>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_FLOAT16:
+                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<ov::float16>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_QUANT16_SYMM:
+                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int16_t>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_QUANT16_ASYMM:
+                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint16_t>(),
+                            srcTensor.get_byte_size());
+                break;
+            default:
+                std::memcpy((uint8_t*)destPtr, srcTensor.data<uint8_t>(),
+                            srcTensor.get_byte_size());
+                break;
         }
     }
 

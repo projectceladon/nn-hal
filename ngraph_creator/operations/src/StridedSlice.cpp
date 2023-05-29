@@ -7,8 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-StridedSlice::StridedSlice(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+StridedSlice::StridedSlice(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 bool StridedSlice::validate() {
@@ -20,31 +20,31 @@ bool StridedSlice::validate() {
     }
 
     // TODO: Add Support for all_tensors_as_inputs
-    auto& begins_OperandIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 1);
-    if (!sModelInfo->isOperandLifeTimeConst(begins_OperandIndex)) {
+    auto& begins_OperandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 1);
+    if (!mOpModelInfo->isOperandLifeTimeConst(begins_OperandIndex)) {
         ALOGE("%s Only Constant dimensions supported now", __func__);
         return false;
     }
 
-    auto ends_OperandIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 2);
-    if (!sModelInfo->isOperandLifeTimeConst(ends_OperandIndex)) {
+    auto ends_OperandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 2);
+    if (!mOpModelInfo->isOperandLifeTimeConst(ends_OperandIndex)) {
         ALOGE("%s Only Constant dimensions supported now", __func__);
         return false;
     }
 
-    auto& strides_OperandIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 3);
-    if (!sModelInfo->isOperandLifeTimeConst(strides_OperandIndex)) {
+    auto& strides_OperandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 3);
+    if (!mOpModelInfo->isOperandLifeTimeConst(strides_OperandIndex)) {
         ALOGE("%s Only Constant dimensions supported now", __func__);
         return false;
     }
 
-    auto shrink_axis_mask = sModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex, 6);
+    auto shrink_axis_mask = mOpModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex, 6);
     std::vector<int64_t> shrink_axis_mask_bits = getMaskBits(shrink_axis_mask, inputRank);
 
     for (int i = 0; i < inputRank; i++) {
         if (shrink_axis_mask_bits[i]) {
             // Check for negative stride when shrink axis bit is set
-            auto stridesVector = sModelInfo->GetConstVecOperand<int32_t>(strides_OperandIndex);
+            auto stridesVector = mOpModelInfo->GetConstVecOperand<int32_t>(strides_OperandIndex);
             if (stridesVector[i] < 0) {
                 ALOGE("%s Negative stride value when shrink axis bit set is not supported",
                       __func__);
@@ -52,8 +52,8 @@ bool StridedSlice::validate() {
             }
 
             // check for slice size larger than expected output
-            auto beginVector = sModelInfo->GetConstVecOperand<int32_t>(begins_OperandIndex);
-            auto endVector = sModelInfo->GetConstVecOperand<int32_t>(ends_OperandIndex);
+            auto beginVector = mOpModelInfo->GetConstVecOperand<int32_t>(begins_OperandIndex);
+            auto endVector = mOpModelInfo->GetConstVecOperand<int32_t>(ends_OperandIndex);
             if (((beginVector[i] - endVector[i]) > 1) || ((beginVector[i] - endVector[i]) < -1)) {
                 ALOGE("%s Trying to access invalid slice size when shrink axis bit is set",
                       __func__);
@@ -72,9 +72,9 @@ std::shared_ptr<ov::Node> StridedSlice::createNode() {
     std::shared_ptr<ov::Node> end = getInputNode(2);
     std::shared_ptr<ov::Node> strides = getInputNode(3);
 
-    auto begin_mask = sModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex, 4);
-    auto end_mask = sModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex, 5);
-    auto shrink_axis_mask = sModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex, 6);
+    auto begin_mask = mOpModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex, 4);
+    auto end_mask = mOpModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex, 5);
+    auto shrink_axis_mask = mOpModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex, 6);
 
     const auto data_dim_size = getInputOperandDimensions(0).size();
     std::vector<int64_t> begin_mask_bits, end_mask_bits, shrink_axis_mask_bits;

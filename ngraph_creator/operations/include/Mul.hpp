@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Mul : public OperationsBase {
 public:
-    Mul(int operationIndex);
+    Mul(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

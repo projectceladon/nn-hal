@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Cast : public OperationsBase {
 public:
-    Cast(int operationIndex);
+    Cast(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
     void connectOperationToGraph() override;
 };

@@ -9,7 +9,7 @@ namespace nnhal {
 
 class TopkV2 : public OperationsBase {
 public:
-    TopkV2(int operationIndex);
+    TopkV2(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
     void connectOperationToGraph() override;
 };

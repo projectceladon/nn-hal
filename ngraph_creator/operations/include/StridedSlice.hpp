@@ -9,7 +9,7 @@ namespace nnhal {
 
 class StridedSlice : public OperationsBase {
 public:
-    StridedSlice(int operationIndex);
+    StridedSlice(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
     std::vector<int64_t> getMaskBits(int32_t maskValue, size_t vec_size);
