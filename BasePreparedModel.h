@@ -53,6 +53,8 @@ typedef uint8_t* memory;
 class BasePreparedModel : public V1_3::IPreparedModel {
 public:
     bool mRemoteCheck = false;
+    std::string mXmlFile;
+    std::string mBinFile;
     BasePreparedModel(const IntelDeviceType device, const Model& model) : mTargetDevice(device) {
         mModelInfo = std::make_shared<NnapiModelInfo>(model);
         mXmlFile = MODEL_DIR + std::to_string(mFileId) + std::string(".xml");
@@ -110,8 +112,6 @@ protected:
     std::shared_ptr<IIENetwork> mPlugin;
 private:
     static uint32_t mFileId;
-    std::string mXmlFile;
-    std::string mBinFile;
     std::unordered_map<size_t, size_t> mInputsToTensorMap;
     std::unordered_map<size_t, size_t> mOutputsToTensorMap;
 };
