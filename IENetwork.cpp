@@ -9,7 +9,7 @@
 
 namespace android::hardware::neuralnetworks::nnhal {
 
-bool IENetwork::loadNetwork(std::shared_ptr<ov::Model> network, const std::string& ir_xml, const std::string& ir_bin) {
+bool IENetwork::createNetwork(std::shared_ptr<ov::Model> network, const std::string& ir_xml, const std::string& ir_bin) {
     ALOGV("%s", __func__);
 
 #if __ANDROID__
@@ -32,14 +32,14 @@ bool IENetwork::loadNetwork(std::shared_ptr<ov::Model> network, const std::strin
             break;
     }
 
-    ALOGD("Creating infer request for Intel Device Type : %s", deviceStr.c_str());
+    ALOGD("creating infer request for Intel Device Type : %s", deviceStr.c_str());
 
     if (!network) {
         ALOGE("Invalid Network pointer");
         return false;
     } else {
         ov::CompiledModel compiled_model = ie.compile_model(network, deviceStr);
-        ALOGD("loadNetwork is done....");
+        ALOGD("createNetwork is done....");
 #if __ANDROID__
         ov::serialize(network, ir_xml, ir_bin,
                         ov::pass::Serialize::Version::IR_V11);
@@ -48,11 +48,38 @@ bool IENetwork::loadNetwork(std::shared_ptr<ov::Model> network, const std::strin
         manager.register_pass<ov::pass::Serialize>("/tmp/model.xml", "/tmp/model.bin");
         manager.run_passes(network);
 #endif
-        mInferRequest = compiled_model.create_infer_request();
-        ALOGD("CreateInferRequest is done....");
     }
 
     return true;
+}
+
+void IENetwork::loadNetwork(const std::string& modelName) {
+#if __ANDROID__
+    ov::Core ie(std::string("/vendor/etc/openvino/plugins.xml"));
+#else
+    ov::Core ie(std::string("/usr/local/lib64/plugins.xml"));
+#endif
+
+    std::string deviceStr;
+    switch (mTargetDevice) {
+        case IntelDeviceType::GNA:
+            deviceStr = "GNA";
+            break;
+        case IntelDeviceType::VPU:
+            deviceStr = "VPUX";
+            break;
+        case IntelDeviceType::CPU:
+        default:
+            deviceStr = "CPU";
+            break;
+    }
+
+    ALOGD("loading infer request for Intel Device Type : %s", deviceStr.c_str());
+
+    ov::CompiledModel compiled_model = ie.compile_model(modelName, deviceStr);
+    mInferRequest = compiled_model.create_infer_request();
+    isLoaded = true;
+    ALOGD("Load InferRequest is done....");
 }
 
 // Need to be called before loadnetwork.. But not sure whether need to be called for
