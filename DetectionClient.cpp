@@ -8,7 +8,7 @@
 
 std::string DetectionClient::prepare(bool& flag) {
     RequestString request;
-    request.set_value("");
+    request.mutable_token()->set_data(mToken);
     ReplyStatus reply;
     ClientContext context;
     time_point deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(PREPARE_DEADLINE);
@@ -24,9 +24,26 @@ std::string DetectionClient::prepare(bool& flag) {
     }
 }
 
+std::string DetectionClient::release(bool& flag) {
+    RequestString request;
+    request.mutable_token()->set_data(mToken);
+    ReplyStatus reply;
+    ClientContext context;
+
+    Status status = stub_->release(&context, request, &reply);
+
+    if (status.ok()) {
+        flag = reply.status();
+        return (flag ? "status True" : "status False");
+    } else {
+        return std::string(status.error_message());
+    }
+}
+
 Status DetectionClient::sendFile(std::string fileName,
                 std::unique_ptr<ClientWriter<RequestDataChunks> >& writer) {
     RequestDataChunks request;
+    request.mutable_token()->set_data(mToken);
     uint32_t CHUNK_SIZE = 10 * 1024 * 1024;
     std::ifstream fin(fileName, std::ifstream::binary);
     std::vector<char> buffer(CHUNK_SIZE, 0);
@@ -54,7 +71,7 @@ bool DetectionClient::isModelLoaded(std::string fileName) {
     ReplyStatus reply;
     ClientContext context;
     RequestString request;
-    request.set_value(fileName);
+    request.mutable_token()->set_data(mToken);
     time_point deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(MODEL_LOAD_DEADLINE);
     context.set_deadline(deadline);
     status = stub_->loadModel(&context, request, &reply);
@@ -179,6 +196,7 @@ std::string DetectionClient::remote_infer() {
     time_point deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(REMOTE_INFER_DEADLINE);
     context.set_deadline(deadline);
 
+    request.mutable_token()->set_data(mToken);
     status = stub_->getInferResult(&context, request, &reply);
     if (status.ok()) {
         if (reply.data_tensors_size() == 0) ALOGE("GRPC reply empty, ovms failure ?");
