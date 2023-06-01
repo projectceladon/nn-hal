@@ -49,10 +49,11 @@ namespace android::hardware::neuralnetworks::nnhal {
 template <class T>
 using vec = std::vector<T>;
 typedef uint8_t* memory;
-extern bool mRemoteCheck;
+
 extern std::shared_ptr<DetectionClient> mDetectionClient;
 class BasePreparedModel : public V1_3::IPreparedModel {
 public:
+    bool mRemoteCheck = false;
     BasePreparedModel(const IntelDeviceType device, const Model& model) : mTargetDevice(device) {
         mModelInfo = std::make_shared<NnapiModelInfo>(model);
         mXmlFile = std::string("/data/vendor/neuralnetworks/") + std::to_string(mFileId) + std::string(".xml");
@@ -90,6 +91,7 @@ public:
     virtual bool initialize();
     virtual bool checkRemoteConnection();
     virtual bool loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin);
+    virtual void setRemoteEnabled(bool flag);
 
     std::shared_ptr<NnapiModelInfo> getModelInfo() { return mModelInfo; }
 
