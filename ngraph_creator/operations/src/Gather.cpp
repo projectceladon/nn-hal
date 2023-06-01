@@ -7,8 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-Gather::Gather(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+Gather::Gather(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 std::shared_ptr<ov::Node> Gather::createNode() {
@@ -18,7 +18,7 @@ std::shared_ptr<ov::Node> Gather::createNode() {
     gatherVals = getInputNode(0);
 
     // axis range [-n, n]
-    auto axis = sModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 1);
+    auto axis = mOpModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 1);
     auto axisNode = createConstNode(ov::element::i32, {}, convertToVector(axis));
 
     auto indices = getInputNode(2);

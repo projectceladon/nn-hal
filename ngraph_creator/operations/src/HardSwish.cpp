@@ -6,8 +6,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-HardSwish::HardSwish(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+HardSwish::HardSwish(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 bool HardSwish::validate() {

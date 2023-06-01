@@ -9,7 +9,7 @@
 
 namespace android::hardware::neuralnetworks::nnhal {
 
-bool IENetwork::loadNetwork(const std::string& ir_xml, const std::string& ir_bin) {
+bool IENetwork::loadNetwork(std::shared_ptr<ov::Model> network, const std::string& ir_xml, const std::string& ir_bin) {
     ALOGV("%s", __func__);
 
 #if __ANDROID__
@@ -34,23 +34,22 @@ bool IENetwork::loadNetwork(const std::string& ir_xml, const std::string& ir_bin
 
     ALOGD("Creating infer request for Intel Device Type : %s", deviceStr.c_str());
 
-    if (mNetwork) {
-        compiled_model = ie.compile_model(mNetwork, deviceStr);
+    if (!network) {
+        ALOGE("Invalid Network pointer");
+        return false;
+    } else {
+        ov::CompiledModel compiled_model = ie.compile_model(network, deviceStr);
         ALOGD("loadNetwork is done....");
 #if __ANDROID__
-        ov::serialize(mNetwork, ir_xml, ir_bin,
+        ov::serialize(network, ir_xml, ir_bin,
                         ov::pass::Serialize::Version::IR_V11);
 #else
         ov::pass::Manager manager;
         manager.register_pass<ov::pass::Serialize>("/tmp/model.xml", "/tmp/model.bin");
-        manager.run_passes(mNetwork);
+        manager.run_passes(network);
 #endif
         mInferRequest = compiled_model.create_infer_request();
         ALOGD("CreateInferRequest is done....");
-
-    } else {
-        ALOGE("Invalid Network pointer");
-        return false;
     }
 
     return true;

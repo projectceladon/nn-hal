@@ -9,7 +9,7 @@ namespace nnhal {
 
 class EmbeddingLookup : public OperationsBase {
 public:
-    EmbeddingLookup(int operationIndex);
+    EmbeddingLookup(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Pow : public OperationsBase {
 public:
-    Pow(int operationIndex);
+    Pow(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

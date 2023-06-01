@@ -96,7 +96,7 @@ enum PaddingScheme {
 #define dumpOperand(index, model)                               \
     do {                                                        \
         const auto op = model.operands[index];                  \
-        ALOGV("Operand (%zu) %s", index, toString(op).c_str()); \
+        ALOGD("Operand (%zu) %s", index, toString(op).c_str()); \
     } while (0)
 
 #define dumpOperation(operation)                             \
@@ -183,14 +183,14 @@ struct printHelper {
 template <>
 struct printHelper<int32_t> {
     static void print(const int32_t& value, const char* operand) {
-        ALOGI("Operand: value: %d, %s", value, operand);
+        ALOGV("Operand: value: %d, %s", value, operand);
     }
 };
 
 template <>
 struct printHelper<float> {
     static void print(const float& value, const char* operand) {
-        ALOGI("Operand: value: %f, %s", value, operand);
+        ALOGV("Operand: value: %f, %s", value, operand);
     }
 };
 

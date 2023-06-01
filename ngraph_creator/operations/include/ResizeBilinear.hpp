@@ -9,7 +9,7 @@ namespace nnhal {
 
 class ResizeBilinear : public OperationsBase {
 public:
-    ResizeBilinear(int operationIndex);
+    ResizeBilinear(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

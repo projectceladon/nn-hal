@@ -9,7 +9,7 @@ namespace nnhal {
 
 class UnidirectionalSequenceRNN : public OperationsBase {
 public:
-    UnidirectionalSequenceRNN(int operationIndex);
+    UnidirectionalSequenceRNN(int operationIndex, GraphMetadata graphMetadata);
     void connectOperationToGraph() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

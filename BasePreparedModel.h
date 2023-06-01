@@ -94,7 +94,8 @@ public:
 
     std::shared_ptr<NnapiModelInfo> getModelInfo() { return mModelInfo; }
 
-    std::shared_ptr<NgraphNetworkCreator> getNgraphNwCreator() { return mNgraphNetCreator; }
+    size_t getInputTensorIndex(size_t input);
+    size_t getOutputTensorIndex(size_t output);
 
     std::shared_ptr<IIENetwork> getPlugin() { return mPlugin; }
 
@@ -106,12 +107,13 @@ protected:
 
     IntelDeviceType mTargetDevice;
     std::shared_ptr<NnapiModelInfo> mModelInfo;
-    std::shared_ptr<NgraphNetworkCreator> mNgraphNetCreator;
     std::shared_ptr<IIENetwork> mPlugin;
 private:
     static uint32_t mFileId;
     std::string mXmlFile;
     std::string mBinFile;
+    std::unordered_map<size_t, size_t> mInputsToTensorMap;
+    std::unordered_map<size_t, size_t> mOutputsToTensorMap;
 };
 
 class BaseFencedExecutionCallback : public V1_3::IFencedExecutionCallback {

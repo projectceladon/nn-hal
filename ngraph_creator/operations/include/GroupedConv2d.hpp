@@ -9,7 +9,7 @@ namespace nnhal {
 
 class GroupedConv2d : public OperationsBase {
 public:
-    GroupedConv2d(int operationIndex);
+    GroupedConv2d(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

@@ -114,7 +114,7 @@ std::string DetectionClient::sendIRs(bool& flag, const std::string& ir_xml, cons
     return std::string(status.error_message());
 }
 
-void DetectionClient::add_input_data(std::string label, const uint8_t* buffer, std::vector<size_t> shape, uint32_t size, android::hardware::neuralnetworks::nnhal::OperandType operandType) {
+void DetectionClient::add_input_data(std::string label, const uint8_t* buffer, std::vector<uint32_t> shape, uint32_t size, android::hardware::neuralnetworks::nnhal::OperandType operandType) {
     const float* src;
     size_t index;
 
@@ -166,14 +166,10 @@ void DetectionClient::add_input_data(std::string label, const uint8_t* buffer, s
     input->set_data(buffer, size);
 }
 
-void DetectionClient::get_output_data(std::string label, uint8_t* buffer, std::vector<size_t> shape, uint32_t expectedLength) {
+void DetectionClient::get_output_data(std::string label, uint8_t* buffer, uint32_t expectedLength) {
     std::string src;
     size_t index;
-    size_t size = 1;
 
-    for (index = 0; index < shape.size(); index++) {
-        size *= shape[index];
-    }
     for (index = 0; index < reply.data_tensors_size(); index++) {
         if (label.compare(reply.data_tensors(index).node_name()) == 0) {
             src = reply.data_tensors(index).data();
