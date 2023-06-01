@@ -2,15 +2,16 @@
 
 #undef LOG_TAG
 #define LOG_TAG "DetectionClient"
-#define MODEL_LOAD_DEADLINE 20000
+#define MODEL_LOAD_DEADLINE 300000
 #define REMOTE_INFER_DEADLINE 10000
+#define PREPARE_DEADLINE 10000
 
 std::string DetectionClient::prepare(bool& flag) {
     RequestString request;
     request.set_value("");
     ReplyStatus reply;
     ClientContext context;
-    time_point deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(100);
+    time_point deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(PREPARE_DEADLINE);
     context.set_deadline(deadline);
 
     Status status = stub_->prepare(&context, request, &reply);
@@ -26,7 +27,7 @@ std::string DetectionClient::prepare(bool& flag) {
 Status DetectionClient::sendFile(std::string fileName,
                 std::unique_ptr<ClientWriter<RequestDataChunks> >& writer) {
     RequestDataChunks request;
-    uint32_t CHUNK_SIZE = 1024 * 1024;
+    uint32_t CHUNK_SIZE = 10 * 1024 * 1024;
     std::ifstream fin(fileName, std::ifstream::binary);
     std::vector<char> buffer(CHUNK_SIZE, 0);
     ALOGV("GRPC sendFile %s", fileName.c_str());
