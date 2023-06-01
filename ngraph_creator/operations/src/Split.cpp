@@ -36,9 +36,10 @@ std::shared_ptr<ov::Node> Split::createNode() {
             outNode = std::make_shared<ov::opset3::Convert>(outputNode[i], ov::element::f16);
         } else if (checkInputOperandType(0, (int32_t)OperandType::TENSOR_INT32)) {
             outNode = std::make_shared<ov::opset3::Convert>(outputNode[i], ov::element::i32);
-        } else if (checkInputOperandType(0, (int32_t)OperandType::TENSOR_QUANT8_ASYMM) ||
-                   checkInputOperandType(0, (int32_t)OperandType::TENSOR_QUANT8_ASYMM_SIGNED)) {
+        } else if (checkInputOperandType(0, (int32_t)OperandType::TENSOR_QUANT8_ASYMM)) {
             outNode = std::make_shared<ov::opset3::Convert>(outputNode[i], ov::element::u8);
+        } else if (checkInputOperandType(0, (int32_t)OperandType::TENSOR_QUANT8_ASYMM_SIGNED)) {
+            outNode = std::make_shared<ov::opset3::Convert>(outputNode[i], ov::element::i8);
         }
 
         // auto outNode = outputNode[i].get_node_shared_ptr();
