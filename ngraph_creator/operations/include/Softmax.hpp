@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Softmax : public OperationsBase {
 public:
-    Softmax(int operationIndex);
+    Softmax(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Maximum : public OperationsBase {
 public:
-    Maximum(int operationIndex);
+    Maximum(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

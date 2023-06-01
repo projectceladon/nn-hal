@@ -9,7 +9,7 @@ namespace nnhal {
 
 class LSTM : public OperationsBase {
 public:
-    LSTM(int operationIndex);
+    LSTM(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
     void connectOperationToGraph() override;

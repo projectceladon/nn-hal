@@ -7,15 +7,15 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-Transpose::Transpose(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+Transpose::Transpose(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 bool Transpose::validate() {
     // TODO: Add Support for all_tensors_as_inputs
-    const auto& dimsOperandIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 1);
+    const auto& dimsOperandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 1);
     const auto& dims = getInputOperandDimensions(1);
-    if (!dims.empty() && dims[0] != 0 && !sModelInfo->isOperandLifeTimeConst(dimsOperandIndex)) {
+    if (!dims.empty() && dims[0] != 0 && !mOpModelInfo->isOperandLifeTimeConst(dimsOperandIndex)) {
         ALOGE("%s Only Constant dimensions supported now", __func__);
         return false;
     }

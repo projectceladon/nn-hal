@@ -7,8 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-Argmax::Argmax(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+Argmax::Argmax(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 std::shared_ptr<ov::Node> Argmax::createNode() {
@@ -17,7 +17,7 @@ std::shared_ptr<ov::Node> Argmax::createNode() {
 
     input = getInputNode(0);
 
-    int32_t axis = sModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 1);
+    int32_t axis = mOpModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 1);
     ALOGD("createNode axis %d", axis);
 
     auto k_node = createConstNode(ov::element::i32, {}, convertToVector(1));

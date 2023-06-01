@@ -8,8 +8,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-DepthwiseConv2d::DepthwiseConv2d(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+DepthwiseConv2d::DepthwiseConv2d(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 bool DepthwiseConv2d::validate() {
@@ -29,8 +29,8 @@ bool DepthwiseConv2d::validate() {
     }
 
     if (checkInputOperandType(1, (int32_t)OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL)) {
-        const auto& operandIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 1);
-        const auto& operand = sModelInfo->getOperand(operandIndex);
+        const auto& operandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 1);
+        const auto& operand = mOpModelInfo->getOperand(operandIndex);
         if (operand.extraParams.channelQuant().channelDim != 3) {
             return false;
         }
@@ -43,7 +43,7 @@ bool DepthwiseConv2d::validate() {
 std::shared_ptr<ov::Node> DepthwiseConv2d::createNode() {
     std::shared_ptr<ov::Node> inputNode;
     inputNode = getInputNode(0);
-    const auto& inputsSize = sModelInfo->getOperationInputsSize(mNnapiOperationIndex);
+    const auto& inputsSize = mOpModelInfo->getOperationInputsSize(mNnapiOperationIndex);
     ALOGD("%s inputsSize %lu", __func__, inputsSize);
     bool isImplicit = false, isExplicit = false;
 
@@ -83,30 +83,30 @@ std::shared_ptr<ov::Node> DepthwiseConv2d::createNode() {
     }
 
     if (isExplicit) {
-        padding_left = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 3);
-        padding_right = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 4);
-        padding_top = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
-        padding_bottom = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 6);
+        padding_left = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 3);
+        padding_right = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 4);
+        padding_top = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
+        padding_bottom = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 6);
 
-        stride_width = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 7);
-        stride_height = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 8);
+        stride_width = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 7);
+        stride_height = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 8);
 
-        depthwise_multiplier = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 9);
+        depthwise_multiplier = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 9);
 
-        activationFn = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 10);
+        activationFn = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 10);
 
         if (inputsSize > 11 && inputsSize <= 14) {
             switch (inputsSize) {
                 case 14:
                     dilation_height_factor =
-                        sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 13);
+                        mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 13);
                     __attribute__((fallthrough));
                 case 13:
                     dilation_width_factor =
-                        sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 12);
+                        mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 12);
                     __attribute__((fallthrough));
                 case 12:
-                    layout = sModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 11);
+                    layout = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 11);
                     __attribute__((fallthrough));
                 default:
                     break;
@@ -129,27 +129,27 @@ std::shared_ptr<ov::Node> DepthwiseConv2d::createNode() {
         }
     }
     else if (isImplicit) {
-        padding_scheme = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 3);
+        padding_scheme = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 3);
 
-        stride_width = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 4);
-        stride_height = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
+        stride_width = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 4);
+        stride_height = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 5);
 
-        depthwise_multiplier = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 6);
+        depthwise_multiplier = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 6);
 
-        activationFn = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 7);
+        activationFn = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 7);
 
         if (inputsSize > 8 && inputsSize <= 11) {
             switch (inputsSize) {
                 case 11:
                     dilation_height_factor =
-                        sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 10);
+                        mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 10);
                     __attribute__((fallthrough));
                 case 10:
                     dilation_width_factor =
-                        sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 9);
+                        mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 9);
                     __attribute__((fallthrough));
                 case 9:
-                    layout = sModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 8);
+                    layout = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 8);
                     __attribute__((fallthrough));
                 default:
                     break;
@@ -186,16 +186,16 @@ std::shared_ptr<ov::Node> DepthwiseConv2d::createNode() {
     }
 
     std::shared_ptr<ov::Node> filterNode, biasNode;
-    const auto& biasIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 2);
+    const auto& biasIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 2);
 
     filterNode = getInputNode(1);
     biasNode = getInputNode(2);
 
     if (checkInputOperandType(1, (int32_t)OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL)) {
-        auto filterIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 1);
-        const auto& filterOperand = sModelInfo->getOperand(filterIndex);
+        auto filterIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 1);
+        const auto& filterOperand = mOpModelInfo->getOperand(filterIndex);
         vec<float> filterScales = filterOperand.extraParams.channelQuant().scales;
-        float inputScale = sModelInfo->getOperandScale(0);
+        float inputScale = mOpModelInfo->getOperandScale(0);
         auto filterScalesNode =
             createConstNode(ov::element::f32, ov::Shape{filterScales.size()}, filterScales);
         auto inputScalesNode =

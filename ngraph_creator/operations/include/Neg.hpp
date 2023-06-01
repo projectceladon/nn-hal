@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Neg : public OperationsBase {
 public:
-    Neg(int operationIndex);
+    Neg(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

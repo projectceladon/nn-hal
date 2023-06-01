@@ -9,9 +9,9 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-BidirectionalSequenceRNN::BidirectionalSequenceRNN(int operationIndex)
+BidirectionalSequenceRNN::BidirectionalSequenceRNN(int operationIndex, GraphMetadata graphMetadata)
     : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 void BidirectionalSequenceRNN::connectOperationToGraph() { createNode(); }
@@ -50,9 +50,9 @@ std::shared_ptr<ov::Node> BidirectionalSequenceRNN::createNode() {
         hasAuxInputs = true;
     }
 
-    auto activationFn = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 12);
-    auto isTimeMajor = sModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 13);
-    auto mergeOutputs = sModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 14);
+    auto activationFn = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 12);
+    auto isTimeMajor = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 13);
+    auto mergeOutputs = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 14);
 
     const auto& inDims = getInputOperandDimensions(0);
     uint32_t maxTime;
@@ -206,15 +206,15 @@ std::shared_ptr<ov::Node> BidirectionalSequenceRNN::createNode() {
         fwOutputNode = std::make_shared<ov::opset3::Concat>(concat_output, 2);
     }
 
-    const auto& outputsSize = sModelInfo->getOperationOutputsSize(mNnapiOperationIndex);
+    const auto& outputsSize = mOpModelInfo->getOperationOutputsSize(mNnapiOperationIndex);
 
-    auto fwOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+    auto fwOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
     mNgraphNodes->setOutputAtOperandIndex(fwOutputIndex, fwOutputNode);
     ALOGD("%s Set Output index %d", __func__, fwOutputIndex);
-    const auto fwOp = sModelInfo->getOperand(fwOutputIndex);
+    const auto fwOp = mOpModelInfo->getOperand(fwOutputIndex);
 
     if (!mergeOutputs) {
-        auto bwOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 1);
+        auto bwOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 1);
         mNgraphNodes->setOutputAtOperandIndex(bwOutputIndex, bwOutputNode);
         ALOGD("%s Set Output index %d", __func__, bwOutputIndex);
     }
@@ -230,13 +230,13 @@ std::shared_ptr<ov::Node> BidirectionalSequenceRNN::createNode() {
         }
 
         auto forward_hidden_state_output_Index =
-            sModelInfo->getOperationOutput(mNnapiOperationIndex, fw_hidden_op_index);
+            mOpModelInfo->getOperationOutput(mNnapiOperationIndex, fw_hidden_op_index);
         mNgraphNodes->setOutputAtOperandIndex(forward_hidden_state_output_Index,
                                               fw_op_lastTimestep);
         ALOGD("%s Set Output index %d", __func__, forward_hidden_state_output_Index);
 
         auto backward_hidden_state_output_Index =
-            sModelInfo->getOperationOutput(mNnapiOperationIndex, bw_hidden_op_index);
+            mOpModelInfo->getOperationOutput(mNnapiOperationIndex, bw_hidden_op_index);
         mNgraphNodes->setOutputAtOperandIndex(backward_hidden_state_output_Index,
                                               bw_op_lastTimestep);
         ALOGD("%s Set Output index %d", __func__, backward_hidden_state_output_Index);

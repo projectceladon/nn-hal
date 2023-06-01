@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Exp : public OperationsBase {
 public:
-    Exp(int operationIndex);
+    Exp(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

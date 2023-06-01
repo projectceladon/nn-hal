@@ -7,8 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-L2Normalization::L2Normalization(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+L2Normalization::L2Normalization(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 bool L2Normalization::validate() {
@@ -26,12 +26,12 @@ std::shared_ptr<ov::Node> L2Normalization::createNode() {
     std::shared_ptr<ov::Node> inputNode;
 
     int32_t inputAxes = -1;
-    const auto& inputsSize = sModelInfo->getOperationInputsSize(mNnapiOperationIndex);
+    const auto& inputsSize = mOpModelInfo->getOperationInputsSize(mNnapiOperationIndex);
     ALOGD("%s inputsSize %lu", __func__, inputsSize);
     inputNode = getInputNode(0);
     // NN-HAL 1.2 specific optional input
     if (inputsSize == 2) {
-        inputAxes = sModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex, 1);
+        inputAxes = mOpModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex, 1);
     }
     auto inputAxesNode = createConstNode(ov::element::i32, {1}, convertToVector(inputAxes));
     // TODO: Add support for NNAPI feature level 4, if the elements along an axis are all zeros, the

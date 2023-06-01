@@ -7,8 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-LogicalNot::LogicalNot(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+LogicalNot::LogicalNot(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 std::shared_ptr<ov::Node> LogicalNot::createNode() {

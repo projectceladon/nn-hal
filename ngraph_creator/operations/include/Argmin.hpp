@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Argmin : public OperationsBase {
 public:
-    Argmin(int operationIndex);
+    Argmin(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

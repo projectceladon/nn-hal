@@ -9,7 +9,7 @@ namespace nnhal {
 
 class ROIPooling : public OperationsBase {
 public:
-    ROIPooling(int operationIndex);
+    ROIPooling(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

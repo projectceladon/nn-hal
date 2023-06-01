@@ -9,7 +9,7 @@ namespace nnhal {
 
 class BidirectionalSequenceRNN : public OperationsBase {
 public:
-    BidirectionalSequenceRNN(int operationIndex);
+    BidirectionalSequenceRNN(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
     void connectOperationToGraph() override;
     bool isValidInputTensor(uint32_t inputIndex);

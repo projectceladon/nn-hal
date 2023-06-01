@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Conv2d : public OperationsBase {
 public:
-    Conv2d(int operationIndex);
+    Conv2d(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

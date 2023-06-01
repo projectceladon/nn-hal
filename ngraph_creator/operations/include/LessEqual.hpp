@@ -9,7 +9,7 @@ namespace nnhal {
 
 class LessEqual : public OperationsBase {
 public:
-    LessEqual(int operationIndex);
+    LessEqual(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

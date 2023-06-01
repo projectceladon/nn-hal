@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Log : public OperationsBase {
 public:
-    Log(int operationIndex);
+    Log(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 
