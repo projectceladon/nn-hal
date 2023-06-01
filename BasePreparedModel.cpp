@@ -80,14 +80,32 @@ bool BasePreparedModel::initialize() {
     try {
         mPlugin = std::make_shared<IENetwork>(mTargetDevice);
         mPlugin->loadNetwork(ov_model, mXmlFile, mBinFile);
-        if(mRemoteCheck) {
-                loadRemoteModel(mXmlFile, mBinFile);
-            } else {
-                ALOGD("%s Remote connection unavailable", __func__);
-            }
     } catch (const std::exception& ex) {
         ALOGE("%s Exception !!! %s", __func__, ex.what());
         return false;
+    }
+
+    //Disable remote inference for quant type models
+    bool disableOffload = false;
+    for (auto i : mModelInfo->getModelInputIndexes()) {
+        auto& nnapiOperandType = mModelInfo->getOperand(i).type;
+        switch (nnapiOperandType) {
+            case OperandType::FLOAT32:
+            case OperandType::FLOAT16:
+            case OperandType::TENSOR_FLOAT32:
+            case OperandType::TENSOR_FLOAT16:
+            case OperandType::TENSOR_INT32:
+            case OperandType::INT32:
+                break;
+            default :
+                ALOGD("GRPC Remote Infer not enabled for %d", nnapiOperandType);
+                disableOffload = true;
+                break;
+        }
+        if (disableOffload) break;
+    }
+    if (!disableOffload) {
+        loadRemoteModel(mXmlFile, mBinFile);
     }
 
     size_t tensorIndex = 0;
@@ -128,6 +146,8 @@ bool BasePreparedModel::checkRemoteConnection() {
         if (mDetectionClient) {
             auto reply = mDetectionClient->prepare(is_success);
             ALOGI("GRPC(TCP) prepare response is %d : %s", is_success, reply.c_str());
+        } else {
+            ALOGE("%s mDetectionClient is null", __func__);
         }
     }
     if (!is_success && getGrpcSocketPath(grpc_prop)) {
@@ -140,9 +160,11 @@ bool BasePreparedModel::checkRemoteConnection() {
         if (mDetectionClient) {
             auto reply = mDetectionClient->prepare(is_success);
             ALOGI("GRPC(unix) prepare response is %d : %s", is_success, reply.c_str());
+        } else {
+            ALOGE("%s mDetectionClient is null", __func__);
         }
     }
-    setRemoteEnabled(is_success);
+
     return is_success;
 }
 
@@ -155,8 +177,8 @@ void BasePreparedModel::loadRemoteModel(const std::string& ir_xml, const std::st
         if (reply == "status False") {
             ALOGE("%s Model Load Failed",__func__);
         }
-        setRemoteEnabled(is_success);
     }
+    setRemoteEnabled(is_success);
 }
 
 void BasePreparedModel::setRemoteEnabled(bool flag) {
@@ -536,6 +558,10 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         ALOGI("***********GRPC server response************* %s", reply.c_str());
     }
     if (!preparedModel->mRemoteCheck || !preparedModel->mDetectionClient->get_status()){
+        //Disable remote inference if a request fails
+        if(preparedModel->mRemoteCheck) {
+            preparedModel->setRemoteEnabled(false);
+        }
         try {
             ALOGV("%s Client Infer", __func__);
             plugin->infer();
