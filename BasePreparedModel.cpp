@@ -83,7 +83,7 @@ bool BasePreparedModel::initialize() {
     }
     try {
         mPlugin = std::make_shared<IENetwork>(mTargetDevice);
-        mPlugin->loadNetwork(ov_model, mXmlFile, mBinFile);
+        mPlugin->createNetwork(ov_model, mXmlFile, mBinFile);
     } catch (const std::exception& ex) {
         ALOGE("%s Exception !!! %s", __func__, ex.what());
         return false;
@@ -109,7 +109,14 @@ bool BasePreparedModel::initialize() {
         if (disableOffload) break;
     }
     if (!disableOffload) {
+        ALOGD("%s GRPC load model on remote",__func__);
         loadRemoteModel(mXmlFile, mBinFile);
+    }
+
+    if (disableOffload || !(mRemoteCheck)) {
+        ALOGI("%s load model on native for inference",__func__);
+        mPlugin->loadNetwork(mXmlFile);
+        setRemoteEnabled(false);
     }
 
     size_t tensorIndex = 0;
@@ -492,9 +499,27 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         if(preparedModel->mRemoteCheck && preparedModel->mDetectionClient) {
             auto inOperandType = modelInfo->getOperandType(inIndex);
             preparedModel->mDetectionClient->add_input_data(std::to_string(tensorIndex), (uint8_t*)srcPtr, modelInfo->getOperand(inIndex).dimensions, len, inOperandType);
-        } else {
+            ALOGI("%s GRPC Remote Infer", __func__);
+            if (measure == MeasureTiming::YES) deviceStart = now();
+            ALOGV("%s Run", __func__);
+            auto reply = preparedModel->mDetectionClient->remote_infer();
+            if (measure == MeasureTiming::YES) deviceEnd = now();
+            ALOGI("***********GRPC server response************* %s", reply.c_str());
+            if (reply != "Success") {
+                bool is_success = false;
+                ALOGE("%s GRPC Remote infer failed, Switching to native infer", __func__);
+                preparedModel->setRemoteEnabled(false);
+                preparedModel->mDetectionClient->release(is_success);
+            }
+        }
+
+        if (!preparedModel->mRemoteCheck || !preparedModel->mDetectionClient->get_status()) {
             ov::Tensor destTensor;
             try {
+                if(!plugin->queryState()) {
+                    ALOGI("native model not loaded, starting model load");
+                    plugin->loadNetwork(preparedModel->mXmlFile);
+                }
                 destTensor = plugin->getInputTensor(tensorIndex);
             } catch (const std::exception& ex) {
                 ALOGE("%s Exception !!! %s", __func__, ex.what());
@@ -549,32 +574,17 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
                     std::memcpy((uint8_t*)dest, (uint8_t*)srcPtr, len);
                     break;
             }
-        }
-
-    }
-
-    ALOGV("%s Run", __func__);
-
-    if (measure == MeasureTiming::YES) deviceStart = now();
-    if(preparedModel->mRemoteCheck) {
-        ALOGI("%s GRPC Remote Infer", __func__);
-        auto reply = preparedModel->mDetectionClient->remote_infer();
-        ALOGI("***********GRPC server response************* %s", reply.c_str());
-    }
-    if (!preparedModel->mRemoteCheck || !preparedModel->mDetectionClient->get_status()){
-        //Disable remote inference if a request fails
-        if(preparedModel->mRemoteCheck) {
-            preparedModel->setRemoteEnabled(false);
-        }
-        try {
-            ALOGV("%s Client Infer", __func__);
-            plugin->infer();
-        } catch (const std::exception& ex) {
-            ALOGE("%s Exception !!! %s", __func__, ex.what());
-            return {ErrorStatus::GENERAL_FAILURE, {}, kNoTiming};
+            if (measure == MeasureTiming::YES) deviceStart = now();
+            try {
+                ALOGV("%s RUN native infer", __func__);
+                plugin->infer();
+            } catch (const std::exception& ex) {
+                ALOGE("%s Exception !!! %s", __func__, ex.what());
+                return {ErrorStatus::GENERAL_FAILURE, {}, kNoTiming};
+            }
+            if (measure == MeasureTiming::YES) deviceEnd = now();
         }
     }
-    if (measure == MeasureTiming::YES) deviceEnd = now();
 
     for (size_t i = 0; i < request.outputs.size(); i++) {
         auto outIndex = modelInfo->getModelOutputIndex(i);
@@ -584,44 +594,45 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
             continue;
         }
         ov::Tensor srcTensor;
-        try {
-            srcTensor = plugin->getOutputTensor(tensorIndex);
-        } catch (const std::exception& ex) {
-            ALOGE("%s Exception !!! %s", __func__, ex.what());
-            return {ErrorStatus::GENERAL_FAILURE, {}, kNoTiming};
-        }
-        auto operandType = modelInfo->getOperandType(outIndex);
-        uint32_t actualLength = srcTensor.get_byte_size();
         uint32_t expectedLength = 0;
         void* destPtr = modelInfo->getBlobFromMemoryPoolOut(request, i, expectedLength);
-        auto outputBlobDims = srcTensor.get_shape();
-
-        bool outputSizeMismatch = false;
-        if (actualLength != expectedLength) {
-            ALOGE("%s Invalid length at outIndex(%d) Actual:%d Expected:%d", __func__, outIndex,
-                  actualLength, expectedLength);
-            outputSizeMismatch = true;
-        }
-
-        // TODO: bug identified with OV2021.4 where for Pad operation, if the output dimensions is 1
-        // output dimension is coming as 0
-        if ((outputBlobDims.size() == 0) && (actualLength != 0)) {
-            std::vector<size_t> rdims = {1};
-            modelInfo->updateOutputshapes(i, rdims, outputSizeMismatch ? false : true);
-        } else
-            modelInfo->updateOutputshapes(i, outputBlobDims, outputSizeMismatch ? false : true);
-
-        if (outputSizeMismatch) {
-            ALOGE(
-                "Mismatch in actual and exepcted output sizes. Return with "
-                "OUTPUT_INSUFFICIENT_SIZE error");
-            return {ErrorStatus::OUTPUT_INSUFFICIENT_SIZE, modelInfo->getOutputShapes(), kNoTiming};
-        }
-        //copy output from remote infer
-        //TODO: Add support for other OperandType
         if (preparedModel->mRemoteCheck && preparedModel->mDetectionClient && preparedModel->mDetectionClient->get_status()) {
             preparedModel->mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr, expectedLength);
         } else {
+            try {
+                srcTensor = plugin->getOutputTensor(tensorIndex);
+            } catch (const std::exception& ex) {
+                ALOGE("%s Exception !!! %s", __func__, ex.what());
+                return {ErrorStatus::GENERAL_FAILURE, {}, kNoTiming};
+            }
+            auto operandType = modelInfo->getOperandType(outIndex);
+            uint32_t actualLength = srcTensor.get_byte_size();
+            
+            auto outputBlobDims = srcTensor.get_shape();
+
+            bool outputSizeMismatch = false;
+            if (actualLength != expectedLength) {
+                ALOGE("%s Invalid length at outIndex(%d) Actual:%d Expected:%d", __func__, outIndex,
+                    actualLength, expectedLength);
+                outputSizeMismatch = true;
+            }
+
+            // TODO: bug identified with OV2021.4 where for Pad operation, if the output dimensions is 1
+            // output dimension is coming as 0
+            if ((outputBlobDims.size() == 0) && (actualLength != 0)) {
+                std::vector<size_t> rdims = {1};
+                modelInfo->updateOutputshapes(i, rdims, outputSizeMismatch ? false : true);
+            } else
+                modelInfo->updateOutputshapes(i, outputBlobDims, outputSizeMismatch ? false : true);
+
+            if (outputSizeMismatch) {
+                ALOGE(
+                    "Mismatch in actual and exepcted output sizes. Return with "
+                    "OUTPUT_INSUFFICIENT_SIZE error");
+                return {ErrorStatus::OUTPUT_INSUFFICIENT_SIZE, modelInfo->getOutputShapes(), kNoTiming};
+            }
+            //copy output from remote infer
+            //TODO: Add support for other OperandType
             switch (operandType) {
                 case OperandType::TENSOR_INT32:
                     std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int32_t>(),

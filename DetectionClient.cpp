@@ -195,7 +195,10 @@ std::string DetectionClient::remote_infer() {
     request.mutable_token()->set_data(mToken);
     status = stub_->getInferResult(&context, request, &reply);
     if (status.ok()) {
-        if (reply.data_tensors_size() == 0) ALOGE("GRPC reply empty, ovms failure ?");
+        if (reply.data_tensors_size() == 0) {
+            ALOGE("GRPC reply empty, ovms failure ?");
+            return "Failure";
+        }
         return "Success";
     } else {
         ALOGE("GRPC Error code: %d, message: %s", status.error_code(),
