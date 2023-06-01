@@ -121,6 +121,9 @@ bool BasePreparedModel::loadRemoteModel(const std::string& ir_xml, const std::st
     if(mDetectionClient) {
         auto reply = mDetectionClient->sendIRs(is_success, ir_xml, ir_bin);
         ALOGI("sendIRs response GRPC %d  %s", is_success, reply.c_str());
+        if (reply == "status False") {
+            ALOGE("%s Model Load Failed",__func__);
+        }
     }
     else {
         ALOGE("%s mDetectionClient is null",__func__);
@@ -334,7 +337,7 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
 
         if (mRemoteCheck && mDetectionClient && mDetectionClient->get_status()) {
             mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
-                                              ngraphNw->getOutputShape(outIndex));
+                                              ngraphNw->getOutputShape(outIndex), expectedLength);
         } else {
             switch (operandType) {
                 case OperandType::TENSOR_INT32:
@@ -428,7 +431,8 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         //check if remote infer is available
         //TODO: Need to add FLOAT16 support for remote inferencing
         if(mRemoteCheck && mDetectionClient) {
-            mDetectionClient->add_input_data(std::to_string(i), (uint8_t*)srcPtr, ngraphNw->getOutputShape(inIndex), len);
+            auto inOperandType = modelInfo->getOperandType(inIndex);
+            mDetectionClient->add_input_data(std::to_string(i), (uint8_t*)srcPtr, ngraphNw->getOutputShape(inIndex), len, inOperandType);
         } else {
             ov::Tensor destTensor;
             try {
@@ -557,7 +561,7 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         //TODO: Add support for other OperandType
         if (mRemoteCheck && mDetectionClient && mDetectionClient->get_status()) {
             mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
-                                              ngraphNw->getOutputShape(outIndex));
+                                              ngraphNw->getOutputShape(outIndex), expectedLength);
         } else {
             switch (operandType) {
                 case OperandType::TENSOR_INT32:
@@ -872,7 +876,7 @@ Return<void> BasePreparedModel::executeFenced(const V1_3::Request& request1_3,
 
         if (mRemoteCheck && mDetectionClient && mDetectionClient->get_status()) {
             mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
-                                              mNgraphNetCreator->getOutputShape(outIndex));
+                                              mNgraphNetCreator->getOutputShape(outIndex), expectedLength);
         } else {
             switch (operandType) {
                 case OperandType::TENSOR_INT32:
