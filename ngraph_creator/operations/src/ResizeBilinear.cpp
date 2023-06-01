@@ -12,18 +12,6 @@ ResizeBilinear::ResizeBilinear(int operationIndex) : OperationsBase(operationInd
 }
 
 bool ResizeBilinear::validate() {
-    // TODO Add FLOAT16 check when VPUX plugin is supported
-    if (!checkOutputOperandType(0, (int32_t)OperandType::TENSOR_FLOAT32) &&
-        !checkOutputOperandType(0, (int32_t)OperandType::TENSOR_QUANT8_ASYMM)) {
-        ALOGE("%s check for output types failed", __func__);
-        return false;
-    }
-
-    if (!checkInputOperandType(0, (int32_t)OperandType::TENSOR_FLOAT32) &&
-        !checkInputOperandType(0, (int32_t)OperandType::TENSOR_QUANT8_ASYMM)) {
-        return false;
-    }
-
     const auto& inputDimensionsSize = getInputOperandDimensions(0).size();
     if (inputDimensionsSize != 4) {
         ALOGE("%s Invalid dimensions size for input(%lu)", __func__, inputDimensionsSize);
@@ -72,10 +60,13 @@ std::shared_ptr<ov::Node> ResizeBilinear::createNode() {
         input_height = inputDimensions[1];
     }
 
-    if (!useNchw) inputNode = transpose(NHWC_NCHW, inputNode);
-    // FLOAT16 type check added for future when VPUX plugin support is added
-    if (checkInputOperandType(1, (int32_t)OperandType::FLOAT32) ||
-        checkInputOperandType(1, (int32_t)OperandType::FLOAT16)) {
+    const auto& inputIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 0);
+    const auto inputOp = sModelInfo->getOperand(inputIndex);
+    if (!useNchw) {  // No conversion needed if useNchw set
+        inputNode = transpose(NHWC_NCHW, inputNode);
+    }
+
+    if (checkInputOperandType(1, (int32_t)OperandType::FLOAT32)) {
         // In tensorflow lite, resizing by size is supported. Scaling factors are
         // calculated based on output shape.
         attrs.shape_calculation_mode = ov::op::v4::Interpolate::ShapeCalcMode::sizes;
@@ -85,6 +76,14 @@ std::shared_ptr<ov::Node> ResizeBilinear::createNode() {
         out_height = (int)(input_height * height_scale);
         // Recalculating scaling factors here because of typecasting output shape to
         // integer
+        width_scale = (float)out_width / (float)input_width;
+        height_scale = (float)out_height / (float)input_height;
+    } else if (checkInputOperandType(1, (int32_t)OperandType::FLOAT16)) {
+        attrs.shape_calculation_mode = ov::op::v4::Interpolate::ShapeCalcMode::sizes;
+        width_scale = sModelInfo->ParseOperationInput<_Float16>(mNnapiOperationIndex, 1);
+        height_scale = sModelInfo->ParseOperationInput<_Float16>(mNnapiOperationIndex, 2);
+        out_width = (int)(input_width * width_scale);
+        out_height = (int)(input_height * height_scale);
         width_scale = (float)out_width / (float)input_width;
         height_scale = (float)out_height / (float)input_height;
     } else if (checkInputOperandType(1, (int32_t)OperandType::INT32)) {
@@ -108,8 +107,8 @@ std::shared_ptr<ov::Node> ResizeBilinear::createNode() {
             ov::op::v4::Interpolate::CoordinateTransformMode::asymmetric;
     }
 
-    // mode is passed as "linear" for bilinear interpolation
-    attrs.mode = ov::op::v4::Interpolate::InterpolateMode::linear;
+    // mode is passed as "linear_onnx" for bilinear interpolation
+    attrs.mode = ov::op::v4::Interpolate::InterpolateMode::linear_onnx;
 
     std::vector<int32_t> output_shape = {out_height, out_width};
     auto outputShapeNode = createConstNode(ov::element::i32, {2}, output_shape);
