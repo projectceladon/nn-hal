@@ -23,11 +23,14 @@ using objectDetection::RequestDataTensors;
 using objectDetection::RequestString;
 using time_point = std::chrono::system_clock::time_point;
 
+#define MODEL_DIR std::string("/data/vendor/neuralnetworks/")
+
 class DetectionClient {
 public:
-    DetectionClient(std::shared_ptr<Channel> channel) : stub_(Detection::NewStub(channel)){}
+    DetectionClient(std::shared_ptr<Channel> channel, uint32_t token) : stub_(Detection::NewStub(channel)), mToken(token) {}
 
     std::string prepare(bool& flag);
+    std::string release(bool& flag);
 
     Status sendFile(std::string fileName,
                     std::unique_ptr<ClientWriter<RequestDataChunks> >& writer);
@@ -46,6 +49,7 @@ private:
     RequestDataTensors request;
     ReplyDataTensors reply;
     Status status;
+    uint32_t mToken;
 };
 
 #endif
