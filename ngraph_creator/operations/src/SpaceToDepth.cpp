@@ -7,8 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-SpaceToDepth::SpaceToDepth(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+SpaceToDepth::SpaceToDepth(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 std::shared_ptr<ov::Node> SpaceToDepth::createNode() {
@@ -16,15 +16,15 @@ std::shared_ptr<ov::Node> SpaceToDepth::createNode() {
     std::shared_ptr<ov::Node> input;
     bool useNchw = false;
 
-    const auto& inputsSize = sModelInfo->getOperationInputsSize(mNnapiOperationIndex);
+    const auto& inputsSize = mOpModelInfo->getOperationInputsSize(mNnapiOperationIndex);
 
     if (inputsSize == 3) {
-        auto layout = sModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 2);
+        auto layout = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 2);
         if (layout) useNchw = true;
     }
 
     input = getInputNode(0);
-    auto block_size = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 1);
+    auto block_size = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 1);
 
     if (!useNchw)  // No conversion needed if useNchw set
         input = transpose(NHWC_NCHW, input);

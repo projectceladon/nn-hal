@@ -9,7 +9,7 @@ namespace nnhal {
 
 class ResizeNearestNeighbor : public OperationsBase {
 public:
-    ResizeNearestNeighbor(int operationIndex);
+    ResizeNearestNeighbor(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

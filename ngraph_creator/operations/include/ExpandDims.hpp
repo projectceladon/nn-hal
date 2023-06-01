@@ -9,7 +9,7 @@ namespace nnhal {
 
 class ExpandDims : public OperationsBase {
 public:
-    ExpandDims(int operationIndex);
+    ExpandDims(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

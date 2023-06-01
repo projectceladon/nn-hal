@@ -7,8 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-ExpandDims::ExpandDims(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+ExpandDims::ExpandDims(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 bool ExpandDims::validate() {
@@ -22,7 +22,7 @@ bool ExpandDims::validate() {
 std::shared_ptr<ov::Node> ExpandDims::createNode() {
     // Creating input nodes
     auto input = getInputNode(0);
-    auto index = sModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 1);
+    auto index = mOpModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 1);
 
     auto axes = createConstNode(ov::element::i32, {}, convertToVector(index));
 

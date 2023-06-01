@@ -13,13 +13,13 @@ namespace nnhal {
 #define ACTIVATION_FUNCTION_TANH 4
 #define ACTIVATION_FUNCTION_SIGMOID 6
 
-LSTM::LSTM(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+LSTM::LSTM(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 bool LSTM::validate() {
-    const auto& inputsSize = sModelInfo->getOperationInputsSize(mNnapiOperationIndex);
-    const auto& outputsSize = sModelInfo->getOperationOutputsSize(mNnapiOperationIndex);
+    const auto& inputsSize = mOpModelInfo->getOperationInputsSize(mNnapiOperationIndex);
+    const auto& outputsSize = mOpModelInfo->getOperationOutputsSize(mNnapiOperationIndex);
 
     if (inputsSize != 23) {
         if (inputsSize != 27) return false;
@@ -34,15 +34,15 @@ bool LSTM::validate() {
 void LSTM::connectOperationToGraph() { createNode(); }
 
 std::shared_ptr<ov::Node> LSTM::createNode() {
-    const auto& inputsSize = sModelInfo->getOperationInputsSize(mNnapiOperationIndex);
+    const auto& inputsSize = mOpModelInfo->getOperationInputsSize(mNnapiOperationIndex);
 
     bool isCIFGenabled = false, isPeepholeUsed = false, isProjectionUsed = false,
          isLayerNormUsed = false, isCifgDimsEmpty = true;
 
     // checking if CIFG enabled
-    if (sModelInfo->isOmittedInput(mNnapiOperationIndex, 1) &&
-        sModelInfo->isOmittedInput(mNnapiOperationIndex, 5) &&
-        sModelInfo->isOmittedInput(mNnapiOperationIndex, 12)) {
+    if (mOpModelInfo->isOmittedInput(mNnapiOperationIndex, 1) &&
+        mOpModelInfo->isOmittedInput(mNnapiOperationIndex, 5) &&
+        mOpModelInfo->isOmittedInput(mNnapiOperationIndex, 12)) {
         isCIFGenabled = true;
     } else {
         if (isValidInputTensor(1) && isValidInputTensor(5) && isValidInputTensor(12))
@@ -52,9 +52,9 @@ std::shared_ptr<ov::Node> LSTM::createNode() {
     }
 
     // checking if peephole enabled
-    if (sModelInfo->isOmittedInput(mNnapiOperationIndex, 9) &&
-        sModelInfo->isOmittedInput(mNnapiOperationIndex, 10) &&
-        sModelInfo->isOmittedInput(mNnapiOperationIndex, 11)) {
+    if (mOpModelInfo->isOmittedInput(mNnapiOperationIndex, 9) &&
+        mOpModelInfo->isOmittedInput(mNnapiOperationIndex, 10) &&
+        mOpModelInfo->isOmittedInput(mNnapiOperationIndex, 11)) {
         isPeepholeUsed = false;
     } else {
         if (!isCIFGenabled && !isValidInputTensor(9) && isValidInputTensor(10) &&
@@ -76,7 +76,7 @@ std::shared_ptr<ov::Node> LSTM::createNode() {
     }
 
     // checking if projection enabled
-    if (sModelInfo->isOmittedInput(mNnapiOperationIndex, 16)) {
+    if (mOpModelInfo->isOmittedInput(mNnapiOperationIndex, 16)) {
         isProjectionUsed = false;
     } else {
         if (isValidInputTensor(16))
@@ -87,10 +87,10 @@ std::shared_ptr<ov::Node> LSTM::createNode() {
 
     if (inputsSize == 27) {
         // checking if layer normalization enabled
-        if (sModelInfo->isOmittedInput(mNnapiOperationIndex, 23) &&
-            sModelInfo->isOmittedInput(mNnapiOperationIndex, 24) &&
-            sModelInfo->isOmittedInput(mNnapiOperationIndex, 25) &&
-            sModelInfo->isOmittedInput(mNnapiOperationIndex, 26)) {
+        if (mOpModelInfo->isOmittedInput(mNnapiOperationIndex, 23) &&
+            mOpModelInfo->isOmittedInput(mNnapiOperationIndex, 24) &&
+            mOpModelInfo->isOmittedInput(mNnapiOperationIndex, 25) &&
+            mOpModelInfo->isOmittedInput(mNnapiOperationIndex, 26)) {
             isLayerNormUsed = false;
         } else {
             if (isCIFGenabled) {
@@ -186,16 +186,16 @@ std::shared_ptr<ov::Node> LSTM::createNode() {
     initial_hidden_state = getInputNode(18);  // h_{t-1}
     initial_cell_state = getInputNode(19);    // C_{t-1}
 
-    activationFn = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 20);
+    activationFn = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 20);
 
     if (checkInputOperandType(0, (int32_t)OperandType::TENSOR_FLOAT16)) {
-        cell_state_clipping = sModelInfo->ParseOperationInput<_Float16>(mNnapiOperationIndex, 21);
+        cell_state_clipping = mOpModelInfo->ParseOperationInput<_Float16>(mNnapiOperationIndex, 21);
         if (isProjectionUsed)
-            proj_clipping = sModelInfo->ParseOperationInput<_Float16>(mNnapiOperationIndex, 22);
+            proj_clipping = mOpModelInfo->ParseOperationInput<_Float16>(mNnapiOperationIndex, 22);
     } else {
-        cell_state_clipping = sModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 21);
+        cell_state_clipping = mOpModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 21);
         if (isProjectionUsed)
-            proj_clipping = sModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 22);
+            proj_clipping = mOpModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 22);
     }
 
     std::shared_ptr<ov::Node> i_t, f_t, c_t, o_t;
@@ -326,7 +326,7 @@ std::shared_ptr<ov::Node> LSTM::createNode() {
     LstmOutputs[3] = H;
 
     for (int i = 0; i < 4; i++) {
-        auto outputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, i);
+        auto outputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, i);
         mNgraphNodes->setOutputAtOperandIndex(outputIndex, LstmOutputs[i]);
 
     }

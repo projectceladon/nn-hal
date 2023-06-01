@@ -9,7 +9,7 @@ namespace nnhal {
 
 class DepthToSpace : public OperationsBase {
 public:
-    DepthToSpace(int operationIndex);
+    DepthToSpace(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

@@ -8,15 +8,15 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-Add::Add(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+Add::Add(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 bool Add::validate() {
     ALOGV("%s PASSED", __func__);
 
-    const auto& activationIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 2);
-    if (!sModelInfo->isOperandLifeTimeConst(activationIndex)) {
+    const auto& activationIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 2);
+    if (!mOpModelInfo->isOperandLifeTimeConst(activationIndex)) {
         ALOGE("%s Only Constant supported for specifying Activation", __func__);
         return false;
     }
@@ -31,7 +31,7 @@ std::shared_ptr<ov::Node> Add::createNode() {
     input1 = getInputNode(0);
     input2 = getInputNode(1);
 
-    auto activationFn = sModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 2);
+    auto activationFn = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 2);
     auto addNode =
         std::make_shared<ov::opset8::Add>(input1, input2, ov::op::AutoBroadcastType::NUMPY);
     auto outputNode = applyActivation(addNode, activationFn);
@@ -41,9 +41,9 @@ std::shared_ptr<ov::Node> Add::createNode() {
 
 std::shared_ptr<ov::Node> Add::createNodeForPlugin() {
 #if 0
-    if (sPluginType == IntelDeviceType::VPU) {
+    if (mPluginType == IntelDeviceType::VPU) {
         auto input = mNgraphNodes->getOperationOutput(
-            sModelInfo->getOperationInput(mNnapiOperationIndex, 0));
+            mOpModelInfo->getOperationInput(mNnapiOperationIndex, 0));
         std::shared_ptr<ov::Node> constantOp =
             std::make_shared<ov::opset3::Constant>(ov::element::f32, input.get_shape());
         auto transposedOp = transpose(NHWC_NCHW, constantOp);

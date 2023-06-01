@@ -9,7 +9,7 @@ namespace nnhal {
 
 class FullyConnected : public OperationsBase {
 public:
-    FullyConnected(int operationIndex);
+    FullyConnected(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

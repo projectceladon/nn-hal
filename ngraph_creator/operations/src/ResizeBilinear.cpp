@@ -7,8 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-ResizeBilinear::ResizeBilinear(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+ResizeBilinear::ResizeBilinear(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 bool ResizeBilinear::validate() {
@@ -22,7 +22,7 @@ bool ResizeBilinear::validate() {
 }
 
 std::shared_ptr<ov::Node> ResizeBilinear::createNode() {
-    const auto& inputsSize = sModelInfo->getOperationInputsSize(mNnapiOperationIndex);
+    const auto& inputsSize = mOpModelInfo->getOperationInputsSize(mNnapiOperationIndex);
 
     std::shared_ptr<ov::Node> outputNode;
     int32_t input_width = 0, input_height = 0;
@@ -39,13 +39,13 @@ std::shared_ptr<ov::Node> ResizeBilinear::createNode() {
     inputNode = getInputNode(0);
     switch (inputsSize) {
         case 6:
-            half_pixel = sModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 5);
+            half_pixel = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 5);
             __attribute__((fallthrough));
         case 5:
-            align_corners = sModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 4);
+            align_corners = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 4);
             __attribute__((fallthrough));
         case 4:
-            layout = sModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 3);
+            layout = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 3);
             __attribute__((fallthrough));
         default:
             break;
@@ -60,8 +60,8 @@ std::shared_ptr<ov::Node> ResizeBilinear::createNode() {
         input_height = inputDimensions[1];
     }
 
-    const auto& inputIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 0);
-    const auto inputOp = sModelInfo->getOperand(inputIndex);
+    const auto& inputIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 0);
+    const auto inputOp = mOpModelInfo->getOperand(inputIndex);
     if (!useNchw) {  // No conversion needed if useNchw set
         inputNode = transpose(NHWC_NCHW, inputNode);
     }
@@ -70,8 +70,8 @@ std::shared_ptr<ov::Node> ResizeBilinear::createNode() {
         // In tensorflow lite, resizing by size is supported. Scaling factors are
         // calculated based on output shape.
         attrs.shape_calculation_mode = ov::op::v4::Interpolate::ShapeCalcMode::sizes;
-        width_scale = sModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 1);
-        height_scale = sModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 2);
+        width_scale = mOpModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 1);
+        height_scale = mOpModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 2);
         out_width = (int)(input_width * width_scale);
         out_height = (int)(input_height * height_scale);
         // Recalculating scaling factors here because of typecasting output shape to
@@ -80,16 +80,16 @@ std::shared_ptr<ov::Node> ResizeBilinear::createNode() {
         height_scale = (float)out_height / (float)input_height;
     } else if (checkInputOperandType(1, (int32_t)OperandType::FLOAT16)) {
         attrs.shape_calculation_mode = ov::op::v4::Interpolate::ShapeCalcMode::sizes;
-        width_scale = sModelInfo->ParseOperationInput<_Float16>(mNnapiOperationIndex, 1);
-        height_scale = sModelInfo->ParseOperationInput<_Float16>(mNnapiOperationIndex, 2);
+        width_scale = mOpModelInfo->ParseOperationInput<_Float16>(mNnapiOperationIndex, 1);
+        height_scale = mOpModelInfo->ParseOperationInput<_Float16>(mNnapiOperationIndex, 2);
         out_width = (int)(input_width * width_scale);
         out_height = (int)(input_height * height_scale);
         width_scale = (float)out_width / (float)input_width;
         height_scale = (float)out_height / (float)input_height;
     } else if (checkInputOperandType(1, (int32_t)OperandType::INT32)) {
         attrs.shape_calculation_mode = ov::op::v4::Interpolate::ShapeCalcMode::sizes;
-        out_width = sModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 1);
-        out_height = sModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 2);
+        out_width = mOpModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 1);
+        out_height = mOpModelInfo->ParseOperationInput<int>(mNnapiOperationIndex, 2);
         width_scale = (float)out_width / (float)input_width;
         height_scale = (float)out_height / (float)input_height;
     }

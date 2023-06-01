@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Argmax : public OperationsBase {
 public:
-    Argmax(int operationIndex);
+    Argmax(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

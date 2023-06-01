@@ -90,6 +90,7 @@ namespace nnhal {
 class OperationsFactory {
 private:
     std::shared_ptr<NgraphNodes> mNgraphNodes;
+    GraphMetadata mGraphMetadata;
 
 public:
     OperationsFactory(IntelDeviceType deviceType, std::shared_ptr<NnapiModelInfo> modelInfo,
