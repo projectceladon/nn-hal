@@ -167,7 +167,9 @@ public:
     T GetConstFromBuffer(const uint8_t* buf, uint32_t len);
 
     void* getBlobFromMemoryPoolIn(const Request& request, uint32_t index, uint32_t& rBufferLength);
+    void* getBlobFromMemoryPoolIn(const V1_3::Request& request, uint32_t index, uint32_t& rBufferLength);
     void* getBlobFromMemoryPoolOut(const Request& request, uint32_t index, uint32_t& rBufferLength);
+    void* getBlobFromMemoryPoolOut(const V1_3::Request& request, uint32_t index, uint32_t& rBufferLength);
 
     Model getModel() { return mModel; }
 
@@ -185,10 +187,11 @@ public:
 
     std::vector<V1_2::OutputShape> getOutputShapes() { return mOutputShapes; }
 
-    void unmapRuntimeMemPools() {
+    bool unmapRuntimeMemPools() {
         for (auto& runtimeInfo : mRequestPoolInfos) {
             runtimeInfo.unmap_mem();
         }
+        return true;
     }
 
     bool isOmittedInput(int operationIndex, uint32_t index);

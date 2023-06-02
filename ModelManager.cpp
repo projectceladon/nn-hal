@@ -233,7 +233,59 @@ void* NnapiModelInfo::getBlobFromMemoryPoolIn(const Request& request, uint32_t i
     return (r.buffer + arg.location.offset);
 }
 
+void* NnapiModelInfo::getBlobFromMemoryPoolIn(const V1_3::Request& request, uint32_t index,
+                                              uint32_t& rBufferLength) {
+    RunTimeOperandInfo& operand = mOperands[mModel.main.inputIndexes[index]];
+    const V1_0::RequestArgument& arg = request.inputs[index];
+    auto poolIndex = arg.location.poolIndex;
+    nnAssert(poolIndex < mRequestPoolInfos.size());
+    auto& r = mRequestPoolInfos[poolIndex];
+
+    if (arg.dimensions.size() > 0) {
+        // It's the responsibility of the caller to validate that
+        // from.dimensions only modifies the dimensions that were
+        // unspecified in the model.  That's the case in SampleDriver.cpp
+        // with the call to validateRequest().
+        operand.dimensions = arg.dimensions;
+    }
+
+    operand.buffer = r.buffer + arg.location.offset;
+    operand.length = arg.location.length;
+    ALOGV("%s Operand length:%d pointer:%p offset:%d pool index: %d", __func__, operand.length,
+          (r.buffer + arg.location.offset), arg.location.offset, poolIndex);
+    rBufferLength = operand.length;
+
+    return (r.buffer + arg.location.offset);
+}
+
 void* NnapiModelInfo::getBlobFromMemoryPoolOut(const Request& request, uint32_t index,
+                                               uint32_t& rBufferLength) {
+    RunTimeOperandInfo& operand = mOperands[mModel.main.outputIndexes[index]];
+    const V1_0::RequestArgument& arg = request.outputs[index];
+    auto poolIndex = arg.location.poolIndex;
+    nnAssert(poolIndex < mRequestPoolInfos.size());
+    auto& r = mRequestPoolInfos[poolIndex];
+
+    ALOGV("%s lifetime:%d location offset:%d length:%d pool index:%d", __func__, operand.lifetime,
+          arg.location.offset, arg.location.length, poolIndex);
+
+    if (arg.dimensions.size() > 0) {
+        // It's the responsibility of the caller to validate that
+        // from.dimensions only modifies the dimensions that were
+        // unspecified in the model.  That's the case in SampleDriver.cpp
+        // with the call to validateRequest().
+        operand.dimensions = arg.dimensions;
+    }
+
+    operand.buffer = r.buffer + arg.location.offset;
+    operand.length = arg.location.length;
+    rBufferLength = operand.length;
+    ALOGV("%s Operand length:%d pointer:%p", __func__, operand.length,
+          (r.buffer + arg.location.offset));
+    return (r.buffer + arg.location.offset);
+}
+
+void* NnapiModelInfo::getBlobFromMemoryPoolOut(const V1_3::Request& request, uint32_t index,
                                                uint32_t& rBufferLength) {
     RunTimeOperandInfo& operand = mOperands[mModel.main.outputIndexes[index]];
     const V1_0::RequestArgument& arg = request.outputs[index];

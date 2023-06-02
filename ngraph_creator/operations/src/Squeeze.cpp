@@ -7,19 +7,19 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-Squeeze::Squeeze(int operationIndex) : OperationsBase(operationIndex) {
-    mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
+Squeeze::Squeeze(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+    mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
 bool Squeeze::validate() {
     // TODO: Add Support for all_tensors_as_inputs
-    const auto& dimsOperandIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 1);
+    const auto& dimsOperandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 1);
 
     // TODO: Support OmittedInput.
     // The empty 2nd argument in Squeeze op causes dynamic output
     // To add support, the dims will have to be calculated statically
-    if (sModelInfo->isOmittedInput(mNnapiOperationIndex, 1) ||
-        !sModelInfo->isOperandLifeTimeConst(dimsOperandIndex)) {
+    if (mOpModelInfo->isOmittedInput(mNnapiOperationIndex, 1) ||
+        !mOpModelInfo->isOperandLifeTimeConst(dimsOperandIndex)) {
         ALOGE("%s Only Constant dimensions supported now", __func__);
         return false;
     }
@@ -35,7 +35,7 @@ std::shared_ptr<ov::Node> Squeeze::createNode() {
 
     std::shared_ptr<ov::Node> dims;
 
-    if (!sModelInfo->isOmittedInput(mNnapiOperationIndex, 1))
+    if (!mOpModelInfo->isOmittedInput(mNnapiOperationIndex, 1))
         dims = getInputNode(1);
     else
         dims = createConstNode(ov::element::i32, {0}, std::vector<int64_t>{});

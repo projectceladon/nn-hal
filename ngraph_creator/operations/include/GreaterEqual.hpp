@@ -9,7 +9,7 @@ namespace nnhal {
 
 class GreaterEqual : public OperationsBase {
 public:
-    GreaterEqual(int operationIndex);
+    GreaterEqual(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

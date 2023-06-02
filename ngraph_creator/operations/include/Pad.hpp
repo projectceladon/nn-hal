@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Pad : public OperationsBase {
 public:
-    Pad(int operationIndex);
+    Pad(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
 };

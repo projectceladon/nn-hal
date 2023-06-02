@@ -9,7 +9,7 @@ namespace nnhal {
 
 class SQRT : public OperationsBase {
 public:
-    SQRT(int operationIndex);
+    SQRT(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 

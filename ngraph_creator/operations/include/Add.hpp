@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Add : public OperationsBase {
 public:
-    Add(int operationIndex);
+    Add(int operationIndex, GraphMetadata graphMetadata);
     bool validate() override;
     std::shared_ptr<ov::Node> createNode() override;
     std::shared_ptr<ov::Node> createNodeForPlugin() override;

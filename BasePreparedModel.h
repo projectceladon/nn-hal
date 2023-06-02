@@ -49,14 +49,16 @@ namespace android::hardware::neuralnetworks::nnhal {
 template <class T>
 using vec = std::vector<T>;
 typedef uint8_t* memory;
-extern bool mRemoteCheck;
-extern std::shared_ptr<DetectionClient> mDetectionClient;
+
 class BasePreparedModel : public V1_3::IPreparedModel {
 public:
+    bool mRemoteCheck = false;
+    std::string mXmlFile;
+    std::string mBinFile;
     BasePreparedModel(const IntelDeviceType device, const Model& model) : mTargetDevice(device) {
         mModelInfo = std::make_shared<NnapiModelInfo>(model);
-        mXmlFile = std::string("/data/vendor/neuralnetworks/") + std::to_string(mFileId) + std::string(".xml");
-        mBinFile = std::string("/data/vendor/neuralnetworks/") + std::to_string(mFileId) + std::string(".bin");
+        mXmlFile = MODEL_DIR + std::to_string(mFileId) + std::string(".xml");
+        mBinFile = MODEL_DIR + std::to_string(mFileId) + std::string(".bin");
         mFileId++;
     }
 
@@ -89,27 +91,29 @@ public:
 
     virtual bool initialize();
     virtual bool checkRemoteConnection();
-    virtual bool loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin);
+    virtual void loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin);
+    virtual void setRemoteEnabled(bool flag);
 
     std::shared_ptr<NnapiModelInfo> getModelInfo() { return mModelInfo; }
 
-    std::shared_ptr<NgraphNetworkCreator> getNgraphNwCreator() { return mNgraphNetCreator; }
+    size_t getInputTensorIndex(size_t input);
+    size_t getOutputTensorIndex(size_t output);
 
     std::shared_ptr<IIENetwork> getPlugin() { return mPlugin; }
 
     std::shared_ptr<ov::Model> modelPtr;
+    std::shared_ptr<DetectionClient> mDetectionClient;
 
 protected:
     virtual void deinitialize();
 
     IntelDeviceType mTargetDevice;
     std::shared_ptr<NnapiModelInfo> mModelInfo;
-    std::shared_ptr<NgraphNetworkCreator> mNgraphNetCreator;
     std::shared_ptr<IIENetwork> mPlugin;
 private:
     static uint32_t mFileId;
-    std::string mXmlFile;
-    std::string mBinFile;
+    std::unordered_map<size_t, size_t> mInputsToTensorMap;
+    std::unordered_map<size_t, size_t> mOutputsToTensorMap;
 };
 
 class BaseFencedExecutionCallback : public V1_3::IFencedExecutionCallback {

@@ -21,10 +21,11 @@ namespace android::hardware::neuralnetworks::nnhal {
 class IIENetwork {
 public:
     virtual ~IIENetwork() = default;
-    virtual bool loadNetwork(const std::string& ir_xml, const std::string& ir_bin) = 0;
+    virtual void loadNetwork(const std::string& model_name) = 0;
+    virtual bool createNetwork(std::shared_ptr<ov::Model> network, const std::string& ir_xml, const std::string& ir_bin) = 0;
     virtual ov::InferRequest getInferRequest() = 0;
     virtual void infer() = 0;
-    virtual void queryState() = 0;
+    virtual bool queryState() = 0;
     virtual ov::Tensor getTensor(const std::string& outName) = 0;
     virtual ov::Tensor getInputTensor(const std::size_t index) = 0;
     virtual ov::Tensor getOutputTensor(const std::size_t index) = 0;
@@ -34,20 +35,20 @@ public:
 class IENetwork : public IIENetwork {
 private:
     IntelDeviceType mTargetDevice;
-    std::shared_ptr<ov::Model> mNetwork;
-    ov::CompiledModel compiled_model;
     ov::InferRequest mInferRequest;
+    bool isLoaded = false;
 
 public:
-    IENetwork(IntelDeviceType device, std::shared_ptr<ov::Model> network)
-        : mTargetDevice(device), mNetwork(network) {}
+    IENetwork(IntelDeviceType device)
+        : mTargetDevice(device) {}
 
-    virtual bool loadNetwork(const std::string& ir_xml, const std::string& ir_bin);
+    virtual void loadNetwork(const std::string& model_name);
+    virtual bool createNetwork(std::shared_ptr<ov::Model> network, const std::string& ir_xml, const std::string& ir_bin);
     ov::Tensor getTensor(const std::string& outName);
     ov::Tensor getInputTensor(const std::size_t index);
     ov::Tensor getOutputTensor(const std::size_t index);
     ov::InferRequest getInferRequest() { return mInferRequest; }
-    void queryState() {}
+    bool queryState() { return isLoaded; }
     void infer();
     bool getGrpcIpPort(char *ip_port);
 };

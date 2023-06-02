@@ -9,7 +9,7 @@ namespace nnhal {
 
 class Minimum : public OperationsBase {
 public:
-    Minimum(int operationIndex);
+    Minimum(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
 };
 
