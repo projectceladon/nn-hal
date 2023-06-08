@@ -23,8 +23,6 @@ using objectDetection::RequestDataTensors;
 using objectDetection::RequestString;
 using time_point = std::chrono::system_clock::time_point;
 
-#define MODEL_DIR std::string("/data/vendor/neuralnetworks/")
-
 class DetectionClient {
 public:
     DetectionClient(std::shared_ptr<Channel> channel, uint32_t token) : stub_(Detection::NewStub(channel)), mToken(token) {}
