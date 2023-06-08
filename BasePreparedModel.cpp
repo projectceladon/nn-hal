@@ -33,7 +33,7 @@ namespace android::hardware::neuralnetworks::nnhal {
 using namespace android::nn;
 
 static const Timing kNoTiming = {.timeOnDevice = UINT64_MAX, .timeInDriver = UINT64_MAX};
-uint32_t BasePreparedModel::mFileId = 0;
+uint32_t BasePreparedModel::sInstanceCounter = 0;
 
 void BasePreparedModel::deinitialize() {
     ALOGV("Entering %s", __func__);
@@ -75,12 +75,13 @@ bool BasePreparedModel::initialize() {
     if (!ngraphNetCreator->validateOperations()) {
         return false;
     }
-    ALOGI("Generating IR Graph for Model %u", mFileId);
+    ALOGI("Generating IR Graph for Model %u", mInstanceId);
     auto ov_model = ngraphNetCreator->generateGraph();
     if (ov_model == nullptr) {
         ALOGE("%s Openvino model generation failed", __func__);
         return false;
     }
+    checkRemoteConnection();
     try {
         mPlugin = std::make_shared<IENetwork>(mTargetDevice);
         mPlugin->createNetwork(ov_model, mXmlFile, mBinFile);
@@ -153,7 +154,7 @@ bool BasePreparedModel::checkRemoteConnection() {
         args.SetMaxReceiveMessageSize(INT_MAX);
         args.SetMaxSendMessageSize(INT_MAX);
         mDetectionClient = std::make_shared<DetectionClient>(
-            grpc::CreateCustomChannel(grpc_prop, grpc::InsecureChannelCredentials(), args), mFileId);
+            grpc::CreateCustomChannel(grpc_prop, grpc::InsecureChannelCredentials(), args), mInstanceId);
         if (mDetectionClient) {
             auto reply = mDetectionClient->prepare(is_success);
             ALOGI("GRPC(TCP) prepare response is %d : %s", is_success, reply.c_str());
@@ -167,10 +168,21 @@ bool BasePreparedModel::checkRemoteConnection() {
         args.SetMaxReceiveMessageSize(INT_MAX);
         args.SetMaxSendMessageSize(INT_MAX);
         mDetectionClient = std::make_shared<DetectionClient>(
-            grpc::CreateCustomChannel(std::string("unix:") + grpc_prop, grpc::InsecureChannelCredentials(), args), mFileId);
+            grpc::CreateCustomChannel(std::string("unix:") + grpc_prop, grpc::InsecureChannelCredentials(), args), mInstanceId);
         if (mDetectionClient) {
             auto reply = mDetectionClient->prepare(is_success);
             ALOGI("GRPC(unix) prepare response is %d : %s", is_success, reply.c_str());
+            if (is_success) {
+                mSharedDirAvailable = true;
+                std::string path = grpc_prop;
+                size_t pos = path.find_last_of("\\/");
+                if (std::string::npos != pos) {
+                    mModelPath = path.substr(0, pos) + "/remote_model_";
+                    generateFilePaths();
+                }
+            } else {
+                mDetectionClient = nullptr;
+            }
         } else {
             ALOGE("%s mDetectionClient is null", __func__);
         }
@@ -180,9 +192,12 @@ bool BasePreparedModel::checkRemoteConnection() {
 }
 
 void BasePreparedModel::loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin) {
-    ALOGI("Entering %s for Model %u", __func__, mFileId);
+    ALOGI("Entering %s for Model %u", __func__, mInstanceId);
     bool is_success = false;
-    if(checkRemoteConnection() && mDetectionClient) {
+    if (mSharedDirAvailable) {
+        is_success = mDetectionClient->isModelLoaded(ir_xml);
+    }
+    else if (mDetectionClient) {
         auto reply = mDetectionClient->sendIRs(is_success, ir_xml, ir_bin);
         ALOGI("sendIRs response GRPC %d  %s", is_success, reply.c_str());
         if (reply == "status False") {

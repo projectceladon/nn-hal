@@ -4,7 +4,7 @@
 #define LOG_TAG "DetectionClient"
 #define MODEL_LOAD_DEADLINE 300000
 #define REMOTE_INFER_DEADLINE 10000
-#define PREPARE_DEADLINE 10000
+#define PREPARE_DEADLINE 3000
 
 std::string DetectionClient::prepare(bool& flag) {
     RequestString request;
@@ -78,7 +78,7 @@ bool DetectionClient::isModelLoaded(std::string fileName) {
     if(status.ok()) {
         return reply.status();
     } else {
-        ALOGE("Model load failure: %s", status.error_message().c_str());
+        ALOGE("GRPC Model load failure: %s", status.error_message().c_str());
     }
     return false;
 }

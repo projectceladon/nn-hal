@@ -55,14 +55,19 @@ public:
     bool mRemoteCheck = false;
     std::string mXmlFile;
     std::string mBinFile;
+    std::string mModelPath = "/data/vendor/neuralnetworks/";
     BasePreparedModel(const IntelDeviceType device, const Model& model) : mTargetDevice(device) {
         mModelInfo = std::make_shared<NnapiModelInfo>(model);
-        mXmlFile = MODEL_DIR + std::to_string(mFileId) + std::string(".xml");
-        mBinFile = MODEL_DIR + std::to_string(mFileId) + std::string(".bin");
-        mFileId++;
+        mInstanceId = sInstanceCounter++;
+        generateFilePaths();
     }
 
     virtual ~BasePreparedModel() { deinitialize(); }
+
+    void generateFilePaths() {
+        mXmlFile = mModelPath + std::to_string(mInstanceId) + std::string(".xml");
+        mBinFile = mModelPath + std::to_string(mInstanceId) + std::string(".bin");
+    }
 
     Return<ErrorStatus> execute(const Request& request,
                                 const sp<V1_0::IExecutionCallback>& callback) override;
@@ -111,9 +116,11 @@ protected:
     std::shared_ptr<NnapiModelInfo> mModelInfo;
     std::shared_ptr<IIENetwork> mPlugin;
 private:
-    static uint32_t mFileId;
+    static uint32_t sInstanceCounter;
+    uint32_t mInstanceId;
     std::unordered_map<size_t, size_t> mInputsToTensorMap;
     std::unordered_map<size_t, size_t> mOutputsToTensorMap;
+    bool mSharedDirAvailable = false;
 };
 
 class BaseFencedExecutionCallback : public V1_3::IFencedExecutionCallback {
