@@ -35,7 +35,7 @@ public:
 
     std::string sendIRs(bool& flag, const std::string& ir_xml, const std::string& ir_bin);
 
-    bool isModelLoaded(std::string fileName);
+    bool isModelLoaded(std::string fileName, bool quantType);
     void add_input_data(std::string label, const uint8_t* buffer, std::vector<uint32_t> shape, uint32_t size, android::hardware::neuralnetworks::nnhal::OperandType operandType);
     void get_output_data(std::string label, uint8_t* buffer, uint32_t expectedLength);
     void clear_data();

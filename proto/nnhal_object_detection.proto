@@ -45,6 +45,7 @@ message RequestDataChunks {
 
 message RequestString {
   Token token = 1;
+  bool quant_type = 2;
 }
 message ReplyStatus {
   bool status = 1;

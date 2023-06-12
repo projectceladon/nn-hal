@@ -67,11 +67,12 @@ Status DetectionClient::sendFile(std::string fileName,
     return writer->Finish();
 }
 
-bool DetectionClient::isModelLoaded(std::string fileName) {
+bool DetectionClient::isModelLoaded(std::string fileName, bool quantType) {
     ReplyStatus reply;
     ClientContext context;
     RequestString request;
     request.mutable_token()->set_data(mToken);
+    request.set_quant_type(quantType);
     time_point deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(MODEL_LOAD_DEADLINE);
     context.set_deadline(deadline);
     status = stub_->loadModel(&context, request, &reply);
@@ -82,7 +83,6 @@ bool DetectionClient::isModelLoaded(std::string fileName) {
     }
     return false;
 }
-
 std::string DetectionClient::sendIRs(bool& flag, const std::string& ir_xml, const std::string& ir_bin) {
     ReplyStatus reply;
     ClientContext context;
@@ -98,16 +98,9 @@ std::string DetectionClient::sendIRs(bool& flag, const std::string& ir_xml, cons
         status = sendFile(ir_bin, writerBin);
         if (status.ok()) {
             flag = reply.status();
-            //if model is sent succesfully trigger model loading
-            if (flag && isModelLoaded(ir_xml) ) {
-                flag = true;
+            if (flag) {
                 return ("status True");
-            } else {
-                flag = false;
-                ALOGE("Model loading failed!!!");
-                return ("status False");
             }
-        } else {
             return ("status False");
         }
     }
