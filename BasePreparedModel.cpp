@@ -91,7 +91,7 @@ bool BasePreparedModel::initialize() {
     }
 
     //Disable remote inference for quant type models
-    bool disableOffload = false;
+    bool isQuantModel = false;
     for (auto i : mModelInfo->getModelInputIndexes()) {
         auto& nnapiOperandType = mModelInfo->getOperand(i).type;
         switch (nnapiOperandType) {
@@ -103,18 +103,16 @@ bool BasePreparedModel::initialize() {
             case OperandType::INT32:
                 break;
             default :
-                ALOGD("GRPC Remote Infer not enabled for %d", nnapiOperandType);
-                disableOffload = true;
+                ALOGD("GRPC Model Identified as Quant type(%d)", nnapiOperandType);
+                isQuantModel = true;
                 break;
         }
-        if (disableOffload) break;
+        if (isQuantModel) break;
     }
-    if (!disableOffload) {
-        ALOGD("%s GRPC load model on remote",__func__);
-        loadRemoteModel(mXmlFile, mBinFile);
-    }
+    ALOGD("%s GRPC load model on remote", __func__);
+    loadRemoteModel(mXmlFile, mBinFile, isQuantModel);
 
-    if (disableOffload || !(mRemoteCheck)) {
+    if (!mRemoteCheck) {
         ALOGI("%s load model on native for inference",__func__);
         mPlugin->loadNetwork(mXmlFile);
         setRemoteEnabled(false);
@@ -191,20 +189,18 @@ bool BasePreparedModel::checkRemoteConnection() {
     return is_success;
 }
 
-void BasePreparedModel::loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin) {
+void BasePreparedModel::loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin, bool quantType) {
     ALOGI("Entering %s for Model %u", __func__, mInstanceId);
     bool is_success = false;
-    if (mSharedDirAvailable) {
-        is_success = mDetectionClient->isModelLoaded(ir_xml);
-    }
-    else if (mDetectionClient) {
+    if (mDetectionClient && !mSharedDirAvailable) {
         auto reply = mDetectionClient->sendIRs(is_success, ir_xml, ir_bin);
         ALOGI("sendIRs response GRPC %d  %s", is_success, reply.c_str());
         if (reply == "status False") {
             ALOGE("%s Model Load Failed",__func__);
         }
     }
-    setRemoteEnabled(is_success);
+    if (mDetectionClient)
+        setRemoteEnabled(mDetectionClient->isModelLoaded(ir_xml, quantType));
 }
 
 void BasePreparedModel::setRemoteEnabled(bool flag) {
