@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
         } catch (const std::exception& ex) {
             ALOGE("%s Exception !!! %s", __func__, ex.what());
         }
-        
+
         LOG_ALWAYS_FATAL_IF(status != android::OK, "Error while registering as service for %s: %d",
                             deviceType, status);
         joinRpcThreadpool();
@@ -69,8 +69,7 @@ namespace nn {
 GeneralResult<SharedDevice> getService(const std::string& serviceName) {
     auto driver = new android::hardware::neuralnetworks::nnhal::Driver(
         android::hardware::neuralnetworks::nnhal::IntelDeviceType::CPU);
-        abcd
-    return V1_3::utils::Device::create(serviceName, std::move(driver));
+    abcd return V1_3::utils::Device::create(serviceName, std::move(driver));
 }
 
 }  // namespace nn

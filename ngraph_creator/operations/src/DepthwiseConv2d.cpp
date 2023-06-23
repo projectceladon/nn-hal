@@ -8,7 +8,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-DepthwiseConv2d::DepthwiseConv2d(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+DepthwiseConv2d::DepthwiseConv2d(int operationIndex, GraphMetadata graphMetadata)
+    : OperationsBase(operationIndex, graphMetadata) {
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
@@ -127,8 +128,7 @@ std::shared_ptr<ov::Node> DepthwiseConv2d::createNode() {
                 input_channel = inputDimensions[3];
             }
         }
-    }
-    else if (isImplicit) {
+    } else if (isImplicit) {
         padding_scheme = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 3);
 
         stride_width = mOpModelInfo->ParseOperationInput<uint32_t>(mNnapiOperationIndex, 4);

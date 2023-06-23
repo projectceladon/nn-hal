@@ -1,15 +1,16 @@
 #include "IENetwork.h"
-#include "ie_common.h"
 #include <ie_blob.h>
 #include <openvino/pass/manager.hpp>
 #include <openvino/pass/serialize.hpp>
+#include "ie_common.h"
 
 #undef LOG_TAG
 #define LOG_TAG "IENetwork"
 
 namespace android::hardware::neuralnetworks::nnhal {
 
-bool IENetwork::createNetwork(std::shared_ptr<ov::Model> network, const std::string& ir_xml, const std::string& ir_bin) {
+bool IENetwork::createNetwork(std::shared_ptr<ov::Model> network, const std::string& ir_xml,
+                              const std::string& ir_bin) {
     ALOGV("%s", __func__);
 
 #if __ANDROID__
@@ -41,8 +42,7 @@ bool IENetwork::createNetwork(std::shared_ptr<ov::Model> network, const std::str
         ov::CompiledModel compiled_model = ie.compile_model(network, deviceStr);
         ALOGD("createNetwork is done....");
 #if __ANDROID__
-        ov::serialize(network, ir_xml, ir_bin,
-                        ov::pass::Serialize::Version::IR_V11);
+        ov::serialize(network, ir_xml, ir_bin, ov::pass::Serialize::Version::IR_V11);
 #else
         ov::pass::Manager manager;
         manager.register_pass<ov::pass::Serialize>("/tmp/model.xml", "/tmp/model.bin");

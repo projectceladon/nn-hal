@@ -7,7 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-SpaceToBatch::SpaceToBatch(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+SpaceToBatch::SpaceToBatch(int operationIndex, GraphMetadata graphMetadata)
+    : OperationsBase(operationIndex, graphMetadata) {
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
@@ -74,7 +75,8 @@ std::shared_ptr<ov::Node> SpaceToBatch::createNode() {
     const auto pad_begin = createConstNode(ov::element::i64, {inDims.size()}, pad_0);
     const auto pad_end = createConstNode(ov::element::i64, {inDims.size()}, pad_1);
 
-    if (inputsSize == 4) layout = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 3);
+    if (inputsSize == 4)
+        layout = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 3);
     if (layout) useNchw = true;
 
     if (!useNchw)  // No conversion needed if useNchw set

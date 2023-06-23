@@ -7,7 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-Quantize::Quantize(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+Quantize::Quantize(int operationIndex, GraphMetadata graphMetadata)
+    : OperationsBase(operationIndex, graphMetadata) {
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
@@ -23,12 +24,11 @@ std::shared_ptr<ov::Node> Quantize::createNode() {
     } else if (checkOutputOperandType(0, (int32_t)OperandType::TENSOR_QUANT8_ASYMM_SIGNED)) {
         elementType = ov::element::i8;
     } else {
-        ALOGE("Invalid Output Operand Type %d",mOpModelInfo->getOperandType(outputIndex));
+        ALOGE("Invalid Output Operand Type %d", mOpModelInfo->getOperandType(outputIndex));
     }
     auto outputNode = QuantizeNode(input, outputIndex, elementType);
 
-    if (outputNode != nullptr)
-    {
+    if (outputNode != nullptr) {
         mNgraphNodes->setOutputAtOperandIndex(outputIndex, outputNode);
     }
     return nullptr;

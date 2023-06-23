@@ -6,7 +6,6 @@
 #include "ModelManager.h"
 #include "OperationsBase.hpp"
 
-
 namespace android {
 namespace hardware {
 namespace neuralnetworks {

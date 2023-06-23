@@ -10,7 +10,7 @@ namespace nnhal {
 OperationsFactory::OperationsFactory(IntelDeviceType deviceType,
                                      std::shared_ptr<NnapiModelInfo> modelInfo,
                                      std::shared_ptr<NgraphNodes> nodes)
-    : mGraphMetadata {modelInfo, deviceType} {
+    : mGraphMetadata{modelInfo, deviceType} {
     ALOGV("%s Constructed", __func__);
 }
 OperationsFactory::~OperationsFactory() { ALOGV("%s Destructed", __func__); }

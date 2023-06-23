@@ -245,7 +245,8 @@ Return<void> Driver::getSupportedOperations_1_2(const V1_2_Model& model,
     }
 
     auto modelInfo = std::make_shared<NnapiModelInfo>(convertToV1_3(model));
-    std::shared_ptr<NgraphNetworkCreator> ngraphCreatorInst = std::make_shared<NgraphNetworkCreator>(modelInfo, mDeviceType);
+    std::shared_ptr<NgraphNetworkCreator> ngraphCreatorInst =
+        std::make_shared<NgraphNetworkCreator>(modelInfo, mDeviceType);
     ngraphCreatorInst->getSupportedOperations(supported);
 
     cb(ErrorStatus::NONE, supported);
@@ -373,7 +374,8 @@ Return<void> Driver::getSupportedOperations_1_3(const Model& model,
     }
 
     auto modelInfo = std::make_shared<NnapiModelInfo>(model);
-    std::shared_ptr<NgraphNetworkCreator> ngraphCreatorInst = std::make_shared<NgraphNetworkCreator>(modelInfo, mDeviceType);
+    std::shared_ptr<NgraphNetworkCreator> ngraphCreatorInst =
+        std::make_shared<NgraphNetworkCreator>(modelInfo, mDeviceType);
     ngraphCreatorInst->getSupportedOperations(supported);
 
     cb(V1_3::ErrorStatus::NONE, supported);

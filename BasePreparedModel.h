@@ -31,10 +31,10 @@
 
 #include <NgraphNetworkCreator.hpp>
 #include <openvino/pass/serialize.hpp>
+#include "DetectionClient.h"
 #include "Driver.h"
 #include "IENetwork.h"
 #include "ModelManager.h"
-#include "DetectionClient.h"
 #include "utils.h"
 
 #if __ANDROID__
@@ -96,7 +96,8 @@ public:
 
     virtual bool initialize();
     virtual bool checkRemoteConnection();
-    virtual void loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin, bool quantType);
+    virtual void loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin,
+                                 bool quantType);
     virtual void setRemoteEnabled(bool flag);
 
     std::shared_ptr<NnapiModelInfo> getModelInfo() { return mModelInfo; }
@@ -115,6 +116,7 @@ protected:
     IntelDeviceType mTargetDevice;
     std::shared_ptr<NnapiModelInfo> mModelInfo;
     std::shared_ptr<IIENetwork> mPlugin;
+
 private:
     static uint32_t sInstanceCounter;
     uint32_t mInstanceId;

@@ -8,7 +8,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-GroupedConv2d::GroupedConv2d(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+GroupedConv2d::GroupedConv2d(int operationIndex, GraphMetadata graphMetadata)
+    : OperationsBase(operationIndex, graphMetadata) {
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 

@@ -7,7 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-ROIAlign::ROIAlign(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+ROIAlign::ROIAlign(int operationIndex, GraphMetadata graphMetadata)
+    : OperationsBase(operationIndex, graphMetadata) {
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
@@ -61,8 +62,9 @@ std::shared_ptr<ov::Node> ROIAlign::createNode() {
     auto batch_indices = getInputNode(2);  // 1D tensor
     auto output_height = mOpModelInfo->ParseOperationInput<int32_t>(
         mNnapiOperationIndex, 3);  // height of the output tensor
-    auto output_width = mOpModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex,
-                                                                 4);  // width of the output tensor
+    auto output_width =
+        mOpModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex,
+                                                   4);  // width of the output tensor
     auto height_ratio = mOpModelInfo->ParseOperationInput<float>(
         mNnapiOperationIndex,
         5);  // ratio from the height of original image to the height of feature map.
@@ -81,9 +83,9 @@ std::shared_ptr<ov::Node> ROIAlign::createNode() {
     float spatial_scale = 1.0 / (height_ratio);
     int sampling_ratio = sampling_pts_h;
 
-    std::shared_ptr<ov::Node> outputNode = std::make_shared<ov::opset3::ROIAlign>(
-        feat_maps, rois, batch_indices, output_height, output_width, sampling_ratio, spatial_scale,
-        "avg");
+    std::shared_ptr<ov::Node> outputNode =
+        std::make_shared<ov::opset3::ROIAlign>(feat_maps, rois, batch_indices, output_height,
+                                               output_width, sampling_ratio, spatial_scale, "avg");
 
     if (!useNchw) outputNode = transpose(NCHW_NHWC, outputNode);
 

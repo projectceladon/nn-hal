@@ -7,7 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-BatchToSpace::BatchToSpace(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+BatchToSpace::BatchToSpace(int operationIndex, GraphMetadata graphMetadata)
+    : OperationsBase(operationIndex, graphMetadata) {
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
@@ -44,7 +45,8 @@ std::shared_ptr<ov::Node> BatchToSpace::createNode() {
     block_shape.insert(block_shape.begin(), 1);
     block_shape.insert(block_shape.begin(), 1);
 
-    if (inputsSize == 3) layout = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 2);
+    if (inputsSize == 3)
+        layout = mOpModelInfo->ParseOperationInput<uint8_t>(mNnapiOperationIndex, 2);
     if (layout) useNchw = true;
 
     std::vector<uint32_t> shape(inDims.size(), 0);

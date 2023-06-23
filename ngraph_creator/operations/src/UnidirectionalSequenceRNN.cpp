@@ -9,7 +9,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-UnidirectionalSequenceRNN::UnidirectionalSequenceRNN(int operationIndex, GraphMetadata graphMetadata)
+UnidirectionalSequenceRNN::UnidirectionalSequenceRNN(int operationIndex,
+                                                     GraphMetadata graphMetadata)
     : OperationsBase(operationIndex) {
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
