@@ -7,7 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-Argmax::Argmax(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+Argmax::Argmax(int operationIndex, GraphMetadata graphMetadata)
+    : OperationsBase(operationIndex, graphMetadata) {
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 

@@ -7,7 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-ResizeBilinear::ResizeBilinear(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+ResizeBilinear::ResizeBilinear(int operationIndex, GraphMetadata graphMetadata)
+    : OperationsBase(operationIndex, graphMetadata) {
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 

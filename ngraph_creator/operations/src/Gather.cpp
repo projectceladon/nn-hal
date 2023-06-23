@@ -7,7 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-Gather::Gather(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+Gather::Gather(int operationIndex, GraphMetadata graphMetadata)
+    : OperationsBase(operationIndex, graphMetadata) {
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 

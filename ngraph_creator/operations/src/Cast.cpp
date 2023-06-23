@@ -7,7 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-Cast::Cast(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+Cast::Cast(int operationIndex, GraphMetadata graphMetadata)
+    : OperationsBase(operationIndex, graphMetadata) {
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 

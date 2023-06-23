@@ -7,7 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-InstanceNormalization::InstanceNormalization(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+InstanceNormalization::InstanceNormalization(int operationIndex, GraphMetadata graphMetadata)
+    : OperationsBase(operationIndex, graphMetadata) {
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
@@ -66,10 +67,9 @@ std::shared_ptr<ov::Node> InstanceNormalization::createNode() {
     std::shared_ptr<ov::Node> mvnNode = std::make_shared<ov::op::v6::MVN>(
         inputNode, inputAxesNode, normalize_variance, epsilon, ov::op::MVNEpsMode::INSIDE_SQRT);
 
-    auto mulGamma = std::make_shared<ov::opset3::Multiply>(
-        mvnNode, gammaNode, ov::op::AutoBroadcastType::NUMPY);
-    std::shared_ptr<ov::Node> outputNode =
-        std::make_shared<ov::opset3::Add>(mulGamma, betaNode);
+    auto mulGamma = std::make_shared<ov::opset3::Multiply>(mvnNode, gammaNode,
+                                                           ov::op::AutoBroadcastType::NUMPY);
+    std::shared_ptr<ov::Node> outputNode = std::make_shared<ov::opset3::Add>(mulGamma, betaNode);
 
     if (!useNchw) outputNode = transpose(NCHW_NHWC, outputNode);
     ALOGV("%s PASSED", __func__);

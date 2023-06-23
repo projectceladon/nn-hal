@@ -13,7 +13,8 @@ namespace nnhal {
 #define ACTIVATION_FUNCTION_TANH 4
 #define ACTIVATION_FUNCTION_SIGMOID 6
 
-LSTM::LSTM(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+LSTM::LSTM(int operationIndex, GraphMetadata graphMetadata)
+    : OperationsBase(operationIndex, graphMetadata) {
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
@@ -328,7 +329,6 @@ std::shared_ptr<ov::Node> LSTM::createNode() {
     for (int i = 0; i < 4; i++) {
         auto outputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, i);
         mNgraphNodes->setOutputAtOperandIndex(outputIndex, LstmOutputs[i]);
-
     }
     return nullptr;
 }

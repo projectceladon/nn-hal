@@ -2,7 +2,6 @@
 #undef LOG_TAG
 #define LOG_TAG "NgraphNetworkCreator"
 
-
 namespace android {
 namespace hardware {
 namespace neuralnetworks {
@@ -116,10 +115,11 @@ bool NgraphNetworkCreator::createInputParams() {
 
 bool NgraphNetworkCreator::createOutputs() {
     auto outIndexes = mModelInfo->getModelOutputsIndexes();
-    for(int i = 0; i < mModelInfo->getModelOutputsSize(); i++) {
-        //TODO: Remove fake resultNode which is bieng added below, and use tensor names
-        //to handle multiple input and output
-        auto resultNode = std::make_shared<ov::opset3::Result>(mNgraphNodes->getOperationOutput(outIndexes[i]));
+    for (int i = 0; i < mModelInfo->getModelOutputsSize(); i++) {
+        // TODO: Remove fake resultNode which is bieng added below, and use tensor names
+        // to handle multiple input and output
+        auto resultNode =
+            std::make_shared<ov::opset3::Result>(mNgraphNodes->getOperationOutput(outIndexes[i]));
         mNgraphNodes->setResultNode(i, resultNode);
     }
     return true;
@@ -162,7 +162,7 @@ bool NgraphNetworkCreator::initializeModel() {
             return false;
         }
     }
-    if(!createOutputs()) {
+    if (!createOutputs()) {
         ALOGE("initializeModel Failed");
         return false;
     }
@@ -176,7 +176,6 @@ const std::string& NgraphNetworkCreator::getNodeName(uint32_t index) {
 }
 
 std::vector<size_t> NgraphNetworkCreator::getOutputShape(uint32_t index) {
-
     ALOGV("%s get node %d outputsize ", __func__, index);
     return mNgraphNodes->getOutputShape(index);
 }

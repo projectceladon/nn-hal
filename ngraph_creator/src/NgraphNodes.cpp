@@ -2,7 +2,6 @@
 #undef LOG_TAG
 #define LOG_TAG "NgraphNodes"
 
-
 namespace android {
 namespace hardware {
 namespace neuralnetworks {

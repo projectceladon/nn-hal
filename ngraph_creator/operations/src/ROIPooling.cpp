@@ -7,7 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-ROIPooling::ROIPooling(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+ROIPooling::ROIPooling(int operationIndex, GraphMetadata graphMetadata)
+    : OperationsBase(operationIndex, graphMetadata) {
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
@@ -55,8 +56,9 @@ std::shared_ptr<ov::Node> ROIPooling::createNode() {
     auto feat_maps = getInputNode(0);  // 4D tensor
     auto output_height = mOpModelInfo->ParseOperationInput<int32_t>(
         mNnapiOperationIndex, 3);  // height of the output tensor
-    auto output_width = mOpModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex,
-                                                                 4);  // width of the output tensor
+    auto output_width =
+        mOpModelInfo->ParseOperationInput<int32_t>(mNnapiOperationIndex,
+                                                   4);  // width of the output tensor
     auto height_ratio = mOpModelInfo->ParseOperationInput<float>(
         mNnapiOperationIndex,
         5);  // ratio from the height of original image to the height of feature map.
@@ -77,8 +79,7 @@ std::shared_ptr<ov::Node> ROIPooling::createNode() {
     // add bi node to inputs for concat
     const auto& biOperandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 2);
     auto bi_vec = mOpModelInfo->GetConstVecOperand<int32_t>(biOperandIndex);
-    const auto bi_node =
-        createConstNode(ov::element::f32, ov::Shape{bi_vec.size(), 1}, bi_vec);
+    const auto bi_node = createConstNode(ov::element::f32, ov::Shape{bi_vec.size(), 1}, bi_vec);
     inputs.push_back(bi_node);
     // add rois node to inputs for concat
     auto inputIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 1);
@@ -88,8 +89,8 @@ std::shared_ptr<ov::Node> ROIPooling::createNode() {
     std::shared_ptr<ov::Node> roiNode = std::make_shared<ov::opset3::Concat>(inputs, axis);
     ALOGI("%s Concatinated roi_node created", __func__);
 
-    std::shared_ptr<ov::Node> outputNode = std::make_shared<ov::opset3::ROIPooling>(
-        feat_maps, roiNode, output_size, spatial_scale);
+    std::shared_ptr<ov::Node> outputNode =
+        std::make_shared<ov::opset3::ROIPooling>(feat_maps, roiNode, output_size, spatial_scale);
 
     if (!useNchw) outputNode = transpose(NCHW_NHWC, outputNode);
 

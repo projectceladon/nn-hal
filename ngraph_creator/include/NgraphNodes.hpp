@@ -5,7 +5,6 @@
 #include <openvino/openvino.hpp>
 #include <openvino/opsets/opset3.hpp>
 
-
 #undef LOG_TAG
 
 namespace android {

@@ -7,7 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-FullyConnected::FullyConnected(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+FullyConnected::FullyConnected(int operationIndex, GraphMetadata graphMetadata)
+    : OperationsBase(operationIndex, graphMetadata) {
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
@@ -54,8 +55,9 @@ std::shared_ptr<ov::Node> FullyConnected::createNode() {
 
         if (checkInputOperandType(0, (int32_t)OperandType::TENSOR_QUANT8_ASYMM) ||
             checkInputOperandType(0, (int32_t)OperandType::TENSOR_QUANT8_ASYMM_SIGNED))
-            biasNode = DequantizeNode(
-                biasNode, mOpModelInfo->getOperationInput(mNnapiOperationIndex, 2), ov::element::f32);
+            biasNode =
+                DequantizeNode(biasNode, mOpModelInfo->getOperationInput(mNnapiOperationIndex, 2),
+                               ov::element::f32);
 
         addNode = std::make_shared<ov::opset3::Add>(multiplyNode, biasNode,
                                                     ov::op::AutoBroadcastType::NUMPY);

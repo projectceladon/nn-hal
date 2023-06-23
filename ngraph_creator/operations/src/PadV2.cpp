@@ -7,7 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-PadV2::PadV2(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+PadV2::PadV2(int operationIndex, GraphMetadata graphMetadata)
+    : OperationsBase(operationIndex, graphMetadata) {
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
@@ -40,7 +41,8 @@ std::shared_ptr<ov::Node> PadV2::createNode() {
         auto pad_scalar_value = mOpModelInfo->ParseOperationInput<float>(mNnapiOperationIndex, 2);
         pad_value = createConstNode(ov::element::f32, {}, convertToVector(pad_scalar_value));
     } else if (checkInputOperandType(0, (int32_t)OperandType::TENSOR_FLOAT16)) {
-        auto pad_scalar_value = mOpModelInfo->ParseOperationInput<_Float16>(mNnapiOperationIndex, 2);
+        auto pad_scalar_value =
+            mOpModelInfo->ParseOperationInput<_Float16>(mNnapiOperationIndex, 2);
         pad_value = createConstNode(ov::element::f16, {}, convertToVector(pad_scalar_value));
     } else if (checkInputOperandType(0, (int32_t)OperandType::TENSOR_QUANT8_ASYMM) ||
                checkInputOperandType(0, (int32_t)OperandType::TENSOR_QUANT8_ASYMM_SIGNED)) {

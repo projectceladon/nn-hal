@@ -7,7 +7,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-ResizeNearestNeighbor::ResizeNearestNeighbor(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+ResizeNearestNeighbor::ResizeNearestNeighbor(int operationIndex, GraphMetadata graphMetadata)
+    : OperationsBase(operationIndex, graphMetadata) {
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
@@ -102,7 +103,7 @@ std::shared_ptr<ov::Node> ResizeNearestNeighbor::createNode() {
     } else if (half_pixel == true) {
         attrs.coordinate_transformation_mode =
             ov::op::v4::Interpolate::CoordinateTransformMode::half_pixel;
-            attrs.nearest_mode = ov::op::v4::Interpolate::NearestMode::round_prefer_ceil;
+        attrs.nearest_mode = ov::op::v4::Interpolate::NearestMode::round_prefer_ceil;
     } else {
         // If none of the align_corners and half_pixel are true, transformation
         // mode is set to asymmetric
@@ -125,8 +126,8 @@ std::shared_ptr<ov::Node> ResizeNearestNeighbor::createNode() {
     std::vector<int32_t> axes_vec = {2, 3};
     auto axesNode = createConstNode(ov::element::i32, {2}, axes_vec);
 
-    outputNode = std::make_shared<ov::op::v4::Interpolate>(inputNode, outputShapeNode,
-                                                               scaleNode, axesNode, attrs);
+    outputNode = std::make_shared<ov::op::v4::Interpolate>(inputNode, outputShapeNode, scaleNode,
+                                                           axesNode, attrs);
     if (!useNchw) {
         outputNode = transpose(NCHW_NHWC, outputNode);
     }

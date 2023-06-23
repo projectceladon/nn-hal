@@ -8,7 +8,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-Add::Add(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+Add::Add(int operationIndex, GraphMetadata graphMetadata)
+    : OperationsBase(operationIndex, graphMetadata) {
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
@@ -35,7 +36,7 @@ std::shared_ptr<ov::Node> Add::createNode() {
     auto addNode =
         std::make_shared<ov::opset8::Add>(input1, input2, ov::op::AutoBroadcastType::NUMPY);
     auto outputNode = applyActivation(addNode, activationFn);
-    
+
     return outputNode;
 }
 
@@ -54,7 +55,6 @@ std::shared_ptr<ov::Node> Add::createNodeForPlugin() {
     }
 #endif
     return createNode();
-
 }
 
 }  // namespace nnhal

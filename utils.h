@@ -252,8 +252,8 @@ T getOperandConstVal(const Model& model, const Operand& operand) {
 
 int sizeOfData(OperandType type, std::vector<uint32_t> dims);
 
-bool getGrpcSocketPath(char *socket_path);
-bool getGrpcIpPort(char *ip_port);
+bool getGrpcSocketPath(char* socket_path);
+bool getGrpcIpPort(char* ip_port);
 template <typename T, typename S>
 std::shared_ptr<T> As(const std::shared_ptr<S>& src) {
     return std::static_pointer_cast<T>(src);

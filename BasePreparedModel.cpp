@@ -24,7 +24,6 @@
 #include "ExecutionBurstServer.h"
 #include "ValidateHal.h"
 
-
 #undef LOG_TAG
 #define DISABLE_ALL_QUANT
 #define LOG_TAG "BasePreparedModel"
@@ -70,7 +69,8 @@ bool BasePreparedModel::initialize() {
         ALOGE("Failed to initialize Model runtime parameters!!");
         return false;
     }
-    std::shared_ptr<NgraphNetworkCreator> ngraphNetCreator = std::make_shared<NgraphNetworkCreator>(mModelInfo, mTargetDevice);
+    std::shared_ptr<NgraphNetworkCreator> ngraphNetCreator =
+        std::make_shared<NgraphNetworkCreator>(mModelInfo, mTargetDevice);
 
     if (!ngraphNetCreator->validateOperations()) {
         return false;
@@ -90,7 +90,7 @@ bool BasePreparedModel::initialize() {
         return false;
     }
 
-    //Disable remote inference for quant type models
+    // Disable remote inference for quant type models
     bool isQuantModel = false;
     for (auto i : mModelInfo->getModelInputIndexes()) {
         auto& nnapiOperandType = mModelInfo->getOperand(i).type;
@@ -102,7 +102,7 @@ bool BasePreparedModel::initialize() {
             case OperandType::TENSOR_INT32:
             case OperandType::INT32:
                 break;
-            default :
+            default:
                 ALOGD("GRPC Model Identified as Quant type(%d)", nnapiOperandType);
                 isQuantModel = true;
                 break;
@@ -113,7 +113,7 @@ bool BasePreparedModel::initialize() {
     loadRemoteModel(mXmlFile, mBinFile, isQuantModel);
 
     if (!mRemoteCheck) {
-        ALOGI("%s load model on native for inference",__func__);
+        ALOGI("%s load model on native for inference", __func__);
         mPlugin->loadNetwork(mXmlFile);
         setRemoteEnabled(false);
     }
@@ -146,13 +146,14 @@ bool BasePreparedModel::initialize() {
 bool BasePreparedModel::checkRemoteConnection() {
     char grpc_prop[PROPERTY_VALUE_MAX] = "";
     bool is_success = false;
-    if(getGrpcIpPort(grpc_prop)) {
+    if (getGrpcIpPort(grpc_prop)) {
         ALOGV("Attempting GRPC via TCP : %s", grpc_prop);
         grpc::ChannelArguments args;
         args.SetMaxReceiveMessageSize(INT_MAX);
         args.SetMaxSendMessageSize(INT_MAX);
         mDetectionClient = std::make_shared<DetectionClient>(
-            grpc::CreateCustomChannel(grpc_prop, grpc::InsecureChannelCredentials(), args), mInstanceId);
+            grpc::CreateCustomChannel(grpc_prop, grpc::InsecureChannelCredentials(), args),
+            mInstanceId);
         if (mDetectionClient) {
             auto reply = mDetectionClient->prepare(is_success);
             ALOGI("GRPC(TCP) prepare response is %d : %s", is_success, reply.c_str());
@@ -166,7 +167,9 @@ bool BasePreparedModel::checkRemoteConnection() {
         args.SetMaxReceiveMessageSize(INT_MAX);
         args.SetMaxSendMessageSize(INT_MAX);
         mDetectionClient = std::make_shared<DetectionClient>(
-            grpc::CreateCustomChannel(std::string("unix:") + grpc_prop, grpc::InsecureChannelCredentials(), args), mInstanceId);
+            grpc::CreateCustomChannel(std::string("unix:") + grpc_prop,
+                                      grpc::InsecureChannelCredentials(), args),
+            mInstanceId);
         if (mDetectionClient) {
             auto reply = mDetectionClient->prepare(is_success);
             ALOGI("GRPC(unix) prepare response is %d : %s", is_success, reply.c_str());
@@ -189,22 +192,22 @@ bool BasePreparedModel::checkRemoteConnection() {
     return is_success;
 }
 
-void BasePreparedModel::loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin, bool quantType) {
+void BasePreparedModel::loadRemoteModel(const std::string& ir_xml, const std::string& ir_bin,
+                                        bool quantType) {
     ALOGI("Entering %s for Model %u", __func__, mInstanceId);
     bool is_success = false;
     if (mDetectionClient && !mSharedDirAvailable) {
         auto reply = mDetectionClient->sendIRs(is_success, ir_xml, ir_bin);
         ALOGI("sendIRs response GRPC %d  %s", is_success, reply.c_str());
         if (reply == "status False") {
-            ALOGE("%s Model Load Failed",__func__);
+            ALOGE("%s Model Load Failed", __func__);
         }
     }
-    if (mDetectionClient)
-        setRemoteEnabled(mDetectionClient->isModelLoaded(ir_xml, quantType));
+    if (mDetectionClient) setRemoteEnabled(mDetectionClient->isModelLoaded(ir_xml, quantType));
 }
 
 void BasePreparedModel::setRemoteEnabled(bool flag) {
-    if(mRemoteCheck != flag) {
+    if (mRemoteCheck != flag) {
         ALOGD("GRPC %s Remote Connection", flag ? "ACQUIRED" : "RELEASED");
         mRemoteCheck = flag;
     }
@@ -374,8 +377,8 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
         ALOGI("OutputIndex: %d", outIndex);
         auto tensorIndex = preparedModel->getOutputTensorIndex(outIndex);
         if (tensorIndex == SIZE_MAX) {
-             continue;
-         }
+            continue;
+        }
         ov::Tensor srcTensor;
         try {
             srcTensor = plugin->getOutputTensor(tensorIndex);
@@ -415,45 +418,44 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
         }
 
         switch (operandType) {
-                case OperandType::TENSOR_INT32:
-                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int32_t>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_FLOAT32:
-                    std::memcpy((uint8_t*)destPtr, srcTensor.data<float>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_BOOL8:
-                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<bool>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_QUANT8_ASYMM:
-                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint8_t>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_QUANT8_SYMM:
-                case OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL:
-                case OperandType::TENSOR_QUANT8_ASYMM_SIGNED:
-                    std::memcpy((int8_t*)destPtr, (int8_t*)srcTensor.data<int8_t>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_FLOAT16:
-                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<ov::float16>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_QUANT16_SYMM:
-                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int16_t>(),
-                                srcTensor.get_byte_size());
-                    break;
-                case OperandType::TENSOR_QUANT16_ASYMM:
-                    std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint16_t>(),
-                                srcTensor.get_byte_size());
-                    break;
-                default:
-                    std::memcpy((uint8_t*)destPtr, srcTensor.data<uint8_t>(),
-                                srcTensor.get_byte_size());
-                    break;
-            }
+            case OperandType::TENSOR_INT32:
+                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int32_t>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_FLOAT32:
+                std::memcpy((uint8_t*)destPtr, srcTensor.data<float>(), srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_BOOL8:
+                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<bool>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_QUANT8_ASYMM:
+                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint8_t>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_QUANT8_SYMM:
+            case OperandType::TENSOR_QUANT8_SYMM_PER_CHANNEL:
+            case OperandType::TENSOR_QUANT8_ASYMM_SIGNED:
+                std::memcpy((int8_t*)destPtr, (int8_t*)srcTensor.data<int8_t>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_FLOAT16:
+                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<ov::float16>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_QUANT16_SYMM:
+                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int16_t>(),
+                            srcTensor.get_byte_size());
+                break;
+            case OperandType::TENSOR_QUANT16_ASYMM:
+                std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<uint16_t>(),
+                            srcTensor.get_byte_size());
+                break;
+            default:
+                std::memcpy((uint8_t*)destPtr, srcTensor.data<uint8_t>(),
+                            srcTensor.get_byte_size());
+                break;
+        }
     }
 
     if (!modelInfo->updateRequestPoolInfos()) {
@@ -505,11 +507,13 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
             continue;
         }
 
-        //check if remote infer is available
-        //TODO: Need to add FLOAT16 support for remote inferencing
-        if(preparedModel->mRemoteCheck && preparedModel->mDetectionClient) {
+        // check if remote infer is available
+        // TODO: Need to add FLOAT16 support for remote inferencing
+        if (preparedModel->mRemoteCheck && preparedModel->mDetectionClient) {
             auto inOperandType = modelInfo->getOperandType(inIndex);
-            preparedModel->mDetectionClient->add_input_data(std::to_string(tensorIndex), (uint8_t*)srcPtr, modelInfo->getOperand(inIndex).dimensions, len, inOperandType);
+            preparedModel->mDetectionClient->add_input_data(
+                std::to_string(tensorIndex), (uint8_t*)srcPtr,
+                modelInfo->getOperand(inIndex).dimensions, len, inOperandType);
             ALOGI("%s GRPC Remote Infer", __func__);
             if (measure == MeasureTiming::YES) deviceStart = now();
             ALOGV("%s Run", __func__);
@@ -527,7 +531,7 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         if (!preparedModel->mRemoteCheck || !preparedModel->mDetectionClient->get_status()) {
             ov::Tensor destTensor;
             try {
-                if(!plugin->queryState()) {
+                if (!plugin->queryState()) {
                     ALOGI("native model not loaded, starting model load");
                     plugin->loadNetwork(preparedModel->mXmlFile);
                 }
@@ -607,8 +611,10 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         ov::Tensor srcTensor;
         uint32_t expectedLength = 0;
         void* destPtr = modelInfo->getBlobFromMemoryPoolOut(request, i, expectedLength);
-        if (preparedModel->mRemoteCheck && preparedModel->mDetectionClient && preparedModel->mDetectionClient->get_status()) {
-            preparedModel->mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr, expectedLength);
+        if (preparedModel->mRemoteCheck && preparedModel->mDetectionClient &&
+            preparedModel->mDetectionClient->get_status()) {
+            preparedModel->mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
+                                                             expectedLength);
         } else {
             try {
                 srcTensor = plugin->getOutputTensor(tensorIndex);
@@ -618,18 +624,18 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
             }
             auto operandType = modelInfo->getOperandType(outIndex);
             uint32_t actualLength = srcTensor.get_byte_size();
-            
+
             auto outputBlobDims = srcTensor.get_shape();
 
             bool outputSizeMismatch = false;
             if (actualLength != expectedLength) {
                 ALOGE("%s Invalid length at outIndex(%d) Actual:%d Expected:%d", __func__, outIndex,
-                    actualLength, expectedLength);
+                      actualLength, expectedLength);
                 outputSizeMismatch = true;
             }
 
-            // TODO: bug identified with OV2021.4 where for Pad operation, if the output dimensions is 1
-            // output dimension is coming as 0
+            // TODO: bug identified with OV2021.4 where for Pad operation, if the output dimensions
+            // is 1 output dimension is coming as 0
             if ((outputBlobDims.size() == 0) && (actualLength != 0)) {
                 std::vector<size_t> rdims = {1};
                 modelInfo->updateOutputshapes(i, rdims, outputSizeMismatch ? false : true);
@@ -640,10 +646,11 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
                 ALOGE(
                     "Mismatch in actual and exepcted output sizes. Return with "
                     "OUTPUT_INSUFFICIENT_SIZE error");
-                return {ErrorStatus::OUTPUT_INSUFFICIENT_SIZE, modelInfo->getOutputShapes(), kNoTiming};
+                return {ErrorStatus::OUTPUT_INSUFFICIENT_SIZE, modelInfo->getOutputShapes(),
+                        kNoTiming};
             }
-            //copy output from remote infer
-            //TODO: Add support for other OperandType
+            // copy output from remote infer
+            // TODO: Add support for other OperandType
             switch (operandType) {
                 case OperandType::TENSOR_INT32:
                     std::memcpy((uint8_t*)destPtr, (uint8_t*)srcTensor.data<int32_t>(),
@@ -691,7 +698,8 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         ALOGE("Failed to update the request pool infos");
         return {ErrorStatus::GENERAL_FAILURE, {}, kNoTiming};
     }
-    if (preparedModel->mRemoteCheck && preparedModel->mDetectionClient && preparedModel->mDetectionClient->get_status()) {
+    if (preparedModel->mRemoteCheck && preparedModel->mDetectionClient &&
+        preparedModel->mDetectionClient->get_status()) {
         preparedModel->mDetectionClient->clear_data();
     }
 

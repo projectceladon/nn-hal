@@ -83,7 +83,8 @@ void OperationsBase::connectOperationToGraph() {
         // addResultNode(mDefaultOutputIndex, outputNode);
     }
     if (outputNode != nullptr) {
-        mNgraphNodes->setOutputAtOperandIndex(mDefaultOutputIndex, outputNode->get_default_output());
+        mNgraphNodes->setOutputAtOperandIndex(mDefaultOutputIndex,
+                                              outputNode->get_default_output());
     } else {
         ALOGE("%s invalid nullptr output node encountered", __func__);
     }
@@ -93,7 +94,8 @@ void OperationsBase::addResultNode(size_t index, std::shared_ptr<ov::Node> resul
     mNgraphNodes->setResultNode(index, resultNode);
 }
 
-OperationsBase::OperationsBase(int operationIndex, GraphMetadata graphMetadata) : mNnapiOperationIndex(operationIndex) {
+OperationsBase::OperationsBase(int operationIndex, GraphMetadata graphMetadata)
+    : mNnapiOperationIndex(operationIndex) {
     mDefaultOutputIndex = 0;
     mOpModelInfo = graphMetadata.modelInfo;
     mPluginType = graphMetadata.pluginType;
@@ -172,8 +174,8 @@ std::shared_ptr<ov::Node> OperationsBase::QuantizeNode(std::shared_ptr<ov::Node>
     if (operand.type == OperandType::TENSOR_QUANT8_ASYMM) {
         data = std::make_shared<ov::opset3::Clamp>(sum, 0, 255);
     } else if (operand.type == OperandType::TENSOR_QUANT8_SYMM ||
-             operand.type == OperandType::TENSOR_QUANT8_ASYMM_SIGNED) {
-                 data = std::make_shared<ov::opset3::Clamp>(sum, -128, 127);
+               operand.type == OperandType::TENSOR_QUANT8_ASYMM_SIGNED) {
+        data = std::make_shared<ov::opset3::Clamp>(sum, -128, 127);
     } else if (operand.type == OperandType::TENSOR_QUANT16_SYMM) {
         data = std::make_shared<ov::opset3::Clamp>(sum, -32768, 32767);
     } else if (operand.type == OperandType::TENSOR_QUANT16_ASYMM) {
@@ -183,7 +185,7 @@ std::shared_ptr<ov::Node> OperationsBase::QuantizeNode(std::shared_ptr<ov::Node>
     std::shared_ptr<ov::Node> outputNode;
     if (data != nullptr && data->get_element_type() != quantizeType) {
         outputNode = std::make_shared<ov::opset3::Convert>(data, quantizeType);
-    }  else {
+    } else {
         outputNode = data;
     }
 

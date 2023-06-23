@@ -9,7 +9,8 @@ namespace hardware {
 namespace neuralnetworks {
 namespace nnhal {
 
-TransposeConv2D::TransposeConv2D(int operationIndex, GraphMetadata graphMetadata ) : OperationsBase(operationIndex, graphMetadata ) {
+TransposeConv2D::TransposeConv2D(int operationIndex, GraphMetadata graphMetadata)
+    : OperationsBase(operationIndex, graphMetadata) {
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
