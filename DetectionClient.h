@@ -40,7 +40,7 @@ public:
     void add_input_data(std::string label, const uint8_t* buffer, std::vector<uint32_t> shape,
                         uint32_t size,
                         android::hardware::neuralnetworks::nnhal::OperandType operandType);
-    void get_output_data(std::string label, uint8_t* buffer, uint32_t expectedLength);
+    size_t get_output_data(std::string label, uint8_t* buffer, uint32_t expectedLength);
     void clear_data();
     std::string remote_infer();
     bool get_status();

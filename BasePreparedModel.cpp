@@ -304,6 +304,10 @@ void asyncExecute(const Request& request, MeasureTiming measure, BasePreparedMod
 
         ov::Tensor destTensor;
         try {
+            if (!plugin->queryState()) {
+                ALOGI("%s native model not loaded, starting model load", __func__);
+                plugin->loadNetwork(preparedModel->mXmlFile);
+            }
             destTensor = plugin->getInputTensor(tensorIndex);
         } catch (const std::exception& ex) {
             ALOGE("%s Exception !!! %s", __func__, ex.what());
@@ -494,7 +498,7 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
     auto errorStatus = modelInfo->setRunTimePoolInfosFromHidlMemories(request.pools);
     if (errorStatus != V1_3::ErrorStatus::NONE) {
         ALOGE("Failed to set runtime pool info from HIDL memories");
-        return {ErrorStatus::GENERAL_FAILURE, {}, kNoTiming};
+        return {ErrorStatus::INVALID_ARGUMENT, {}, kNoTiming};
     }
 
     for (size_t i = 0; i < request.inputs.size(); i++) {
@@ -532,7 +536,7 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
             ov::Tensor destTensor;
             try {
                 if (!plugin->queryState()) {
-                    ALOGI("native model not loaded, starting model load");
+                    ALOGI("%s native model not loaded, starting model load", __func__);
                     plugin->loadNetwork(preparedModel->mXmlFile);
                 }
                 destTensor = plugin->getInputTensor(tensorIndex);
@@ -613,8 +617,24 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
         void* destPtr = modelInfo->getBlobFromMemoryPoolOut(request, i, expectedLength);
         if (preparedModel->mRemoteCheck && preparedModel->mDetectionClient &&
             preparedModel->mDetectionClient->get_status()) {
-            preparedModel->mDetectionClient->get_output_data(std::to_string(i), (uint8_t*)destPtr,
-                                                             expectedLength);
+            const auto& copied = preparedModel->mDetectionClient->get_output_data(
+                std::to_string(i), (uint8_t*)destPtr, expectedLength);
+            if (copied == 0) {
+                ALOGE("Output not populated");
+                return {ErrorStatus::GENERAL_FAILURE, {}, kNoTiming};
+            } else if (copied != expectedLength) {
+                const auto& opDims = modelInfo->getOperand(outIndex).dimensions;
+                std::vector<size_t> dims;
+                for (const auto& dim : opDims) {
+                    dims.push_back(dim);
+                }
+                modelInfo->updateOutputshapes(i, dims, false);
+                ALOGE(
+                    "Mismatch in actual and exepcted output sizes. Return with "
+                    "OUTPUT_INSUFFICIENT_SIZE error");
+                return {ErrorStatus::OUTPUT_INSUFFICIENT_SIZE, modelInfo->getOutputShapes(),
+                        kNoTiming};
+            }
         } else {
             try {
                 srcTensor = plugin->getOutputTensor(tensorIndex);
@@ -856,6 +876,10 @@ Return<void> BasePreparedModel::executeFenced(const V1_3::Request& request1_3,
 
         ov::Tensor destTensor;
         try {
+            if (!mPlugin->queryState()) {
+                ALOGI("%s native model not loaded, starting model load", __func__);
+                mPlugin->loadNetwork(mXmlFile);
+            }
             destTensor = mPlugin->getInputTensor(tensorIndex);
         } catch (const std::exception& ex) {
             ALOGE("%s Exception !!! %s", __func__, ex.what());

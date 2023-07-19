@@ -172,7 +172,8 @@ void DetectionClient::add_input_data(std::string label, const uint8_t* buffer,
     input->set_data(buffer, size);
 }
 
-void DetectionClient::get_output_data(std::string label, uint8_t* buffer, uint32_t expectedLength) {
+size_t DetectionClient::get_output_data(std::string label, uint8_t* buffer,
+                                        uint32_t expectedLength) {
     std::string src;
     size_t index;
 
@@ -182,11 +183,13 @@ void DetectionClient::get_output_data(std::string label, uint8_t* buffer, uint32
             if (expectedLength != src.length()) {
                 ALOGE("Length mismatch error: expected length %u , actual length %lu",
                       expectedLength, src.length());
+                return src.length();
             }
             memcpy(buffer, src.data(), src.length());
-            break;
+            return src.length();
         }
     }
+    return 0;
 }
 
 void DetectionClient::clear_data() {
