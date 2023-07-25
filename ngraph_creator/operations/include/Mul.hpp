@@ -11,6 +11,7 @@ class Mul : public OperationsBase {
 public:
     Mul(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
+    bool validate() override;
 };
 
 }  // namespace nnhal

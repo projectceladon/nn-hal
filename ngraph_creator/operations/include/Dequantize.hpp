@@ -11,6 +11,7 @@ class Dequantize : public OperationsBase {
 public:
     Dequantize(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
+    bool validate() override;
 };
 
 }  // namespace nnhal

@@ -13,14 +13,28 @@ Transpose::Transpose(int operationIndex, GraphMetadata graphMetadata)
 }
 
 bool Transpose::validate() {
-    // TODO: Add Support for all_tensors_as_inputs
-    const auto& dimsOperandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 1);
-    const auto& dims = getInputOperandDimensions(1);
-    if (!dims.empty() && dims[0] != 0 && !mOpModelInfo->isOperandLifeTimeConst(dimsOperandIndex)) {
-        ALOGE("%s Only Constant dimensions supported now", __func__);
+    // check Input are of valid dimension or not
+    if (!isValidInputTensor(0)) {
+        ALOGE("%s Empty  or Invalid dimensions size for input", __func__);
         return false;
     }
 
+    const auto& inputDimensionsSize = getInputOperandDimensions(0).size();
+    if (inputDimensionsSize > 4) {
+        ALOGE("%s Invalid dimensions size for input(%lu)", __func__, inputDimensionsSize);
+        return false;
+    }
+
+    const auto& inputsSize = mOpModelInfo->getOperationInputsSize(mNnapiOperationIndex);
+    if (inputsSize == 2) {
+        const auto& dimsOperandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 1);
+        if (!isValidInputTensor(1) || !mOpModelInfo->isOperandLifeTimeConst(dimsOperandIndex)) {
+            ALOGE("%s Invalid operand type or operand lifetime", __func__);
+            return false;
+        }
+    }
+
+    ALOGV("%s PASSED", __func__);
     return true;
 }
 

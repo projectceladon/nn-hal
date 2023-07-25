@@ -12,6 +12,23 @@ MaxPool2d::MaxPool2d(int operationIndex, GraphMetadata graphMetadata)
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
+bool MaxPool2d::validate() {
+    // check Input are of valid dimension or not
+    if (!isValidInputTensor(0)) {
+        ALOGE("%s Empty  or Invalid dimensions size for input", __func__);
+        return false;
+    }
+
+    const auto& inputDimensionsSize = getInputOperandDimensions(0).size();
+    if (inputDimensionsSize != 4) {
+        ALOGE("%s Invalid dimensions size for input(%lu)", __func__, inputDimensionsSize);
+        return false;
+    }
+
+    ALOGV("%s PASSED", __func__);
+    return true;
+}
+
 std::shared_ptr<ov::Node> MaxPool2d::createNode() {
     std::shared_ptr<ov::Node> inputNode;
     inputNode = getInputNode(0);

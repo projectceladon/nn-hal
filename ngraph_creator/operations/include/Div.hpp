@@ -11,6 +11,7 @@ class Div : public OperationsBase {
 public:
     Div(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
+    bool validate() override;
 };
 
 }  // namespace nnhal

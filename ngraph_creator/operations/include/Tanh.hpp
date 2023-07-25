@@ -11,6 +11,7 @@ class Tanh : public OperationsBase {
 public:
     Tanh(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
+    bool validate() override;
 };
 
 }  // namespace nnhal

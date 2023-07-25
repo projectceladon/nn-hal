@@ -14,7 +14,11 @@ Add::Add(int operationIndex, GraphMetadata graphMetadata)
 }
 
 bool Add::validate() {
-    ALOGV("%s PASSED", __func__);
+    // Check for zero sized or zero dimension tesnors
+    if (!isValidInputTensor(0) || !isValidInputTensor(1)) {
+        ALOGE("%s Empty  or Invalid dimensions size for input", __func__);
+        return false;
+    }
 
     const auto& activationIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 2);
     if (!mOpModelInfo->isOperandLifeTimeConst(activationIndex)) {
@@ -22,6 +26,7 @@ bool Add::validate() {
         return false;
     }
 
+    ALOGV("%s PASSED", __func__);
     return true;
 }
 
