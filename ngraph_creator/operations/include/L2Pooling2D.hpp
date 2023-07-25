@@ -11,6 +11,7 @@ class L2Pooling2D : public OperationsBase {
 public:
     L2Pooling2D(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
+    bool validate() override;
 };
 
 }  // namespace nnhal

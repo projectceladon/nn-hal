@@ -236,7 +236,7 @@ Return<void> Driver::getSupportedOperations_1_2(const V1_2_Model& model,
     ALOGV("Entering %s", __func__);
 
     int count = model.operations.size();
-    std::vector<bool> supported(count, true);
+    std::vector<bool> supported(count, false);
 
     if (!validateModel(model)) {
         ALOGE("NNERR: %s failed at line no: %d\n", __func__, __LINE__);
@@ -365,7 +365,7 @@ Return<void> Driver::getSupportedOperations_1_3(const Model& model,
     ALOGV("Entering %s", __func__);
 
     int count = model.main.operations.size();
-    std::vector<bool> supported(count, true);
+    std::vector<bool> supported(count, false);
 
     if (!validateModel(model)) {
         ALOGE("NNERR: %s failed at line no: %d\n", __func__, __LINE__);

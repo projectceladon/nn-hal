@@ -13,6 +13,18 @@ Squeeze::Squeeze(int operationIndex, GraphMetadata graphMetadata)
 }
 
 bool Squeeze::validate() {
+    // check Input are of valid dimension or not
+    if (!isValidInputTensor(0)) {
+        ALOGE("%s Empty  or Invalid dimensions size for input", __func__);
+        return false;
+    }
+
+    const auto& inputDimensionsSize = getInputOperandDimensions(0).size();
+    if (inputDimensionsSize > 4) {
+        ALOGE("%s Invalid dimensions size for input(%lu)", __func__, inputDimensionsSize);
+        return false;
+    }
+
     // TODO: Add Support for all_tensors_as_inputs
     const auto& dimsOperandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 1);
 
@@ -23,6 +35,14 @@ bool Squeeze::validate() {
         !mOpModelInfo->isOperandLifeTimeConst(dimsOperandIndex)) {
         ALOGE("%s Only Constant dimensions supported now", __func__);
         return false;
+    }
+
+    const auto& inputsSize = mOpModelInfo->getOperationInputsSize(mNnapiOperationIndex);
+    if (inputsSize == 2) {
+        if (!isValidInputTensor(1)) {
+            ALOGE("%s Empty  or Invalid dimensions size for input", __func__);
+            return false;
+        }
     }
 
     return true;

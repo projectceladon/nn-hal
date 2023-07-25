@@ -12,6 +12,16 @@ Sub::Sub(int operationIndex, GraphMetadata graphMetadata)
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
+bool Sub::validate() {
+    if (!isValidInputTensor(0) || !isValidInputTensor(1)) {
+        ALOGE("%s Empty  or Invalid dimensions size for input", __func__);
+        return false;
+    }
+
+    ALOGV("%s PASSED", __func__);
+    return true;
+}
+
 std::shared_ptr<ov::Node> Sub::createNode() {
     // Creating input nodes
     std::shared_ptr<ov::Node> input1, input2;

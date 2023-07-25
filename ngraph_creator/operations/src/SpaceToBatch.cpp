@@ -18,6 +18,11 @@ bool SpaceToBatch::validate() {
 
     if (inputRank != 4) return false;
 
+    if (!isValidInputTensor(0) || !isValidInputTensor(1) || !isValidInputTensor(2)) {
+        ALOGE("%s Empty  or Invalid dimensions size for input", __func__);
+        return false;
+    }
+
     auto& block_shape_OperandIndex = mOpModelInfo->getOperationInput(mNnapiOperationIndex, 1);
     // TODO: Add Support for all_tensors_as_inputs
     if (!mOpModelInfo->isOperandLifeTimeConst(block_shape_OperandIndex)) {

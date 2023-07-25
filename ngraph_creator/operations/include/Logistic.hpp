@@ -11,6 +11,7 @@ class Logistic : public OperationsBase {
 public:
     Logistic(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
+    bool validate() override;
 };
 
 }  // namespace nnhal

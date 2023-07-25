@@ -12,6 +12,7 @@ public:
     Quantize(int operationIndex, GraphMetadata graphMetadata);
     std::shared_ptr<ov::Node> createNode() override;
     void connectOperationToGraph() override;
+    bool validate() override;
 };
 
 }  // namespace nnhal

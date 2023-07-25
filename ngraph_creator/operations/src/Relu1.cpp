@@ -12,6 +12,17 @@ Relu1::Relu1(int operationIndex, GraphMetadata graphMetadata)
     mDefaultOutputIndex = mOpModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
+bool Relu1::validate() {
+    // check Input are of valid dimension or not
+    if (!isValidInputTensor(0)) {
+        ALOGE("%s Empty  or Invalid dimensions size for input", __func__);
+        return false;
+    }
+
+    ALOGV("%s PASSED", __func__);
+    return true;
+}
+
 std::shared_ptr<ov::Node> Relu1::createNode() {
     // Creating input nodes
     std::shared_ptr<ov::Node> input;

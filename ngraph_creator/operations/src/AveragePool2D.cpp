@@ -13,6 +13,11 @@ AveragePool2D::AveragePool2D(int operationIndex, GraphMetadata graphMetadata)
 }
 
 bool AveragePool2D::validate() {
+    // Check for zero sized or zero dimension tesnors
+    if (!isValidInputTensor(0)) {
+        ALOGE("%s Empty  or Invalid dimensions size for input", __func__);
+        return false;
+    }
     // Check Input Dimension size
     const auto& inputDimensionsSize = getInputOperandDimensions(0).size();
     if (inputDimensionsSize != 4) {
