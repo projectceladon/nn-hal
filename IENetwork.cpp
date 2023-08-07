@@ -39,6 +39,7 @@ bool IENetwork::createNetwork(std::shared_ptr<ov::Model> network, const std::str
         ALOGE("Invalid Network pointer");
         return false;
     } else {
+        ie.set_property(deviceStr, {{ov::hint::inference_precision.name(), "f32"}});
         ov::CompiledModel compiled_model = ie.compile_model(network, deviceStr);
         ALOGD("createNetwork is done....");
 #if __ANDROID__
@@ -76,6 +77,7 @@ void IENetwork::loadNetwork(const std::string& modelName) {
 
     ALOGD("loading infer request for Intel Device Type : %s", deviceStr.c_str());
 
+    ie.set_property(deviceStr, {{ov::hint::inference_precision.name(), "f32"}});
     ov::CompiledModel compiled_model = ie.compile_model(modelName, deviceStr);
     mInferRequest = compiled_model.create_infer_request();
     isLoaded = true;
