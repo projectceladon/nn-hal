@@ -532,7 +532,8 @@ static std::tuple<ErrorStatus, hidl_vec<V1_2::OutputShape>, Timing> executeSynch
             }
         }
 
-        if (!preparedModel->mRemoteCheck || !preparedModel->mDetectionClient->get_status()) {
+        if (!preparedModel->mRemoteCheck || !preparedModel->mDetectionClient ||
+            !preparedModel->mDetectionClient->get_status()) {
             ov::Tensor destTensor;
             try {
                 if (!plugin->queryState()) {
