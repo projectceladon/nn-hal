@@ -22,7 +22,7 @@ bool TransposeConv2D::validate() {
               inputDimensionsSize, filterDimensionsSize);
         return false;
     }
-    if (!isValidInputTensor(0) || !isValidInputTensor(1) || !isValidInputTensor(2)) {
+    if (!isValidInputTensor(0) || !isValidInputTensor(1)) {
         ALOGE("%s Invalid dimensions for input or filter", __func__);
         return false;
     }
@@ -38,22 +38,16 @@ bool TransposeConv2D::validate() {
     // TODO: Issue from OV 2021.4, remove this check once CVS-61723 is resolved
     // Workaround to ignore VTS large input error test cases
     const auto& inputDimensions = getInputOperandDimensions(0);
-    const auto& filterDimensions = getInputOperandDimensions(1);
-    const auto& biasDimensions = getInputOperandDimensions(2);
 
-    if (inputDimensions[1] == 1 && inputDimensions[2] == 1 && inputDimensions[3] == 1) {
-        return false;
-    }
-    //check if the bias dimension ==  filter depth_out && filter depth_in == input depth_in
-    if(filterDimensions[0] != biasDimensions[0] && biasDimensions[3] != inputDimensions[3]) {
-        return false;
-    }
+    if (inputDimensions[1] == 1 && inputDimensions[2] == 1 && inputDimensions[3] == 1) return false;
 
     ALOGV("%s PASSED", __func__);
     return true;
 }
 
 std::shared_ptr<ngraph::Node> TransposeConv2D::createNode() {
+    std::shared_ptr<ngraph::Node> inputNode;
+    inputNode = getInputNode(0);
     const auto& inputsSize = sModelInfo->getOperationInputsSize(mNnapiOperationIndex);
     ALOGD("%s inputsSize %lu", __func__, inputsSize);
 
@@ -63,6 +57,9 @@ std::shared_ptr<ngraph::Node> TransposeConv2D::createNode() {
         isExplicit = true;
     } else if (inputsSize == 9) {
         isImplicit = true;
+    } else {
+        ALOGE("%s inputsSize %lu NOT SUPPORTED", __func__, inputsSize);
+        return inputNode;
     }
 
     int32_t padding_left, padding_right;
@@ -160,10 +157,9 @@ std::shared_ptr<ngraph::Node> TransposeConv2D::createNode() {
         padding_bottom = 0;
     }
 
-    std::shared_ptr<ngraph::Node> inputNode, filterNode, biasNode;
+    std::shared_ptr<ngraph::Node> filterNode, biasNode;
     const auto& biasIndex = sModelInfo->getOperationInput(mNnapiOperationIndex, 2);
 
-    inputNode = getInputNode(0);
     filterNode = getInputNode(1);
     biasNode = getInputNode(2);
 

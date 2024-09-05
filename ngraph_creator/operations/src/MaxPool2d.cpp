@@ -11,23 +11,9 @@ MaxPool2d::MaxPool2d(int operationIndex) : OperationsBase(operationIndex) {
     mDefaultOutputIndex = sModelInfo->getOperationOutput(mNnapiOperationIndex, 0);
 }
 
-bool MaxPool2d::validate() {
-    // Check Input Dimension size
-    const auto& inputDimensionsSize = getInputOperandDimensions(0).size();
-    if (inputDimensionsSize != 4) {
-        ALOGE("%s Invalid dimensions size for input(%lu)", __func__, inputDimensionsSize);
-        return false;
-    }
-    //check Input are of valid dimension or not
-    if ( !isValidInputTensor(0)) {
-         ALOGE("%s Empty  or Invalid dimensions size for input", __func__);
-         return false;
-    }
-
-    ALOGV("%s PASSED", __func__);
-    return true;
-}
 std::shared_ptr<ngraph::Node> MaxPool2d::createNode() {
+    std::shared_ptr<ngraph::Node> inputNode;
+    inputNode = getInputNode(0);
     const auto& inputsSize = sModelInfo->getOperationInputsSize(mNnapiOperationIndex);
     ALOGD("%s inputsSize %lu", __func__, inputsSize);
 
@@ -37,6 +23,9 @@ std::shared_ptr<ngraph::Node> MaxPool2d::createNode() {
         isExplicit = true;
     } else if (inputsSize >= 7 && inputsSize <= 8) {
         isImplicit = true;
+    } else {
+        ALOGE("%s inputsSize %lu NOT SUPPORTED", __func__, inputsSize);
+        return inputNode;
     }
 
     int32_t padding_left, padding_right;
@@ -77,13 +66,6 @@ std::shared_ptr<ngraph::Node> MaxPool2d::createNode() {
         if (layout) useNchw = true;
 
         auto_pad = ngraph::op::PadType::EXPLICIT;
-        if (useNchw) {
-            input_width = inputDimensions[3];
-            input_height = inputDimensions[2];
-        } else {
-            input_width = inputDimensions[2];
-            input_height = inputDimensions[1];
-        }
     }
 
     if (isImplicit) {
@@ -127,9 +109,6 @@ std::shared_ptr<ngraph::Node> MaxPool2d::createNode() {
             padding_bottom = 0;
         }
     }
-
-    std::shared_ptr<ngraph::Node> inputNode;
-    inputNode = getInputNode(0);
 
     if (!useNchw) {  // No conversion needed if useNchw set
         inputNode = transpose(NHWC_NCHW, inputNode);
